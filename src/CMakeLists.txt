@@ -1,0 +1,5 @@
+add_library(ta ta.c)
+target_include_directories(ta BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(ta PRIVATE ${TA_C_FLAGS})
+install(TARGETS ta DESTINATION lib)
+install(FILES ta.h DESTINATION include)
