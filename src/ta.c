@@ -5,30 +5,6 @@
 
 #include "ta.h"
 
-#ifndef __ta_has_builtin
-#   ifdef __has_builtin
-#       define __ta_has_builtin(x) __has_builtin(x)
-#   else
-#       define __ta_has_builtin(x) (0)
-#   endif
-#endif
-
-#ifndef __ta_likely
-#   if defined(__GNUC__) || __ta_has_builtin(__builtin_expect)
-#       define __ta_likely(x) (__builtin_expect(!!(x), 1))
-#   else
-#       define __ta_likely(x) (x)
-#   endif
-#endif
-
-#ifndef __ta_unlikely
-#   if defined(__GNUC__) || __ta_has_builtin(__builtin_expect)
-#       define __ta_unlikely(x) (__builtin_expect(!!(x), 0))
-#   else
-#       define __ta_unlikely(x) (x)
-#   endif
-#endif
-
 #ifndef __ta_packed
 #   if defined(__GNUC__) || __ta_has_attribute(__packed__)
 #       define __ta_packed __attribute__((__packed__))
@@ -128,6 +104,82 @@ static void ta_header_free(struct ta_header *h)
 
     h->magic = 0;
     free(h);
+}
+
+void *ta_xmalloc(size_t size)
+{
+    if (__ta_unlikely(!size))
+        size = 1;
+    void *ptr = malloc(size);
+    if (__ta_unlikely(!ptr))
+        abort();
+    return ptr;
+}
+
+void *ta_xcalloc(size_t n, size_t size)
+{
+    if (__ta_unlikely(!n || !size))
+        n = size = 1;
+    void *ptr = calloc(n, size);
+    if (__ta_unlikely(!ptr))
+        abort();
+    return ptr;
+}
+
+void *ta_xrealloc(void *ptr, size_t size)
+{
+    if (__ta_unlikely(!size))
+        size = 1;
+    ptr = ptr ? realloc(ptr, size) : malloc(size);
+    if (__ta_unlikely(!ptr))
+        abort();
+    return ptr;
+}
+
+void *ta_xzalloc(size_t size)
+{
+    if (__ta_unlikely(!size))
+        size = 1;
+    void *ptr = calloc(1, size);
+    if (__ta_unlikely(!ptr))
+        abort();
+    return ptr;
+}
+
+char *ta_xstrdup(const char *str)
+{
+    if (__ta_unlikely(!str))
+        abort();
+    char *ptr = strdup(str);
+    if (__ta_unlikely(!ptr))
+        abort();
+    return ptr;
+}
+
+char *ta_xstrndup(const char *str, size_t n)
+{
+    if (__ta_unlikely(!str))
+        abort();
+    char *ptr = strndup(str, n);
+    if (__ta_unlikely(!ptr))
+        abort();
+    return ptr;
+}
+
+void *ta_xmemdup(const void *mem, size_t n)
+{
+    if (__ta_unlikely(!mem))
+        abort();
+    if (__ta_unlikely(!n)) {
+        void *ptr = malloc(1);
+        if (__ta_unlikely(!ptr))
+            abort();
+        return ptr;
+    }
+    void *ptr = malloc(n);
+    if (__ta_unlikely(!ptr))
+        abort();
+    return memcpy(ptr, mem, n);
 }
 
 void *ta_alloc(void *tactx, size_t size)
@@ -246,6 +298,44 @@ void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size)
         memcpy(TA_PTR_FROM_HDR(h), ptr, size);
 
     return ta_header_init(h, size, tactx);
+}
+
+void *ta_strdup(void *restrict tactx, const char *restrict str)
+{
+    if (__ta_unlikely(!str))
+        abort();
+
+    size_t size = strlen(str) + 1;
+    if (__ta_unlikely(size > TA_MAX_SIZE))
+        abort();
+
+    struct ta_header *h = malloc(TA_HDR_SIZE + size);
+    if (__ta_unlikely(!h))
+        abort();
+
+    memcpy(TA_PTR_FROM_HDR(h), str, size);
+    return ta_header_init(h, size, tactx);
+}
+
+void *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
+{
+    if (__ta_unlikely(!str))
+        abort();
+
+    n = strnlen(str, n);
+    if (__ta_unlikely(n >= TA_MAX_SIZE))
+        abort();
+
+    struct ta_header *h = malloc(TA_HDR_SIZE + n + 1);
+    if (__ta_unlikely(!h))
+        abort();
+
+    char *ptr = TA_PTR_FROM_HDR(h);
+    if (__ta_likely(n))
+        memcpy(ptr, str, n);
+
+    ptr[n] = '\0';
+    return ta_header_init(h, n + 1, tactx);
 }
 
 void ta_free(void *ptr)

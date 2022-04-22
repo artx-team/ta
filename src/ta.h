@@ -15,6 +15,30 @@ extern "C" {
 
 #include <stddef.h>
 
+#ifndef __ta_has_builtin
+#   ifdef __has_builtin
+#       define __ta_has_builtin(x) __has_builtin(x)
+#   else
+#       define __ta_has_builtin(x) (0)
+#   endif
+#endif
+
+#ifndef __ta_likely
+#   if defined(__GNUC__) || __ta_has_builtin(__builtin_expect)
+#       define __ta_likely(x) (__builtin_expect(!!(x), 1))
+#   else
+#       define __ta_likely(x) (x)
+#   endif
+#endif
+
+#ifndef __ta_unlikely
+#   if defined(__GNUC__) || __ta_has_builtin(__builtin_expect)
+#       define __ta_unlikely(x) (__builtin_expect(!!(x), 0))
+#   else
+#       define __ta_unlikely(x) (x)
+#   endif
+#endif
+
 #ifndef __ta_has_attribute
 #   ifdef __has_attribute
 #       define __ta_has_attribute(x) __has_attribute(x)
@@ -47,9 +71,75 @@ extern "C" {
 #   endif
 #endif
 
-#define TA_FREE(ptr) do { if (ptr) { ta_free(ptr); (ptr) = NULL; } } while (0)
+#ifndef __ta_malloc
+#   if defined(__GNUC__) || __ta_has_attribute(__malloc__)
+#       define __ta_malloc __attribute__((__malloc__))
+#   else
+#       define __ta_malloc
+#   endif
+#endif
+
+#ifndef __ta_alloc_size
+#   if defined(__GNUC__) || __ta_has_attribute(__alloc_size__)
+#       define __ta_alloc_size(...) __attribute__((__alloc_size__(__VA_ARGS__)))
+#   else
+#       define __ta_alloc_size(...)
+#   endif
+#endif
+
+#ifndef __ta_dealloc_free
+#   if defined(__GNUC__) && __GNUC__ >= 11
+#       define __ta_dealloc_free __attribute__((__malloc__(__builtin_free, 1)))
+#   else
+#       define __ta_dealloc_free
+#   endif
+#endif
+
+// Wrapper around standard `malloc()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_alloc_size(1) __ta_dealloc_free
+void *ta_xmalloc(size_t size);
+
+// Wrapper around standard `calloc()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_alloc_size(1, 2) __ta_dealloc_free
+void *ta_xcalloc(size_t n, size_t size);
+
+// Wrapper around standard `realloc()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_alloc_size(2) __ta_dealloc_free
+void *ta_xrealloc(void *ptr, size_t size);
+
+// Wrapper around standard `calloc()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_alloc_size(1) __ta_dealloc_free
+void *ta_xzalloc(size_t size);
+
+// Wrapper around standard `strdup()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_dealloc_free
+char *ta_xstrdup(const char *str);
+
+// Wrapper around standard `strndup()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_dealloc_free
+char *ta_xstrndup(const char *str, size_t n);
+
+// Wrapper around `malloc()` and `memcpy()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_dealloc_free
+void *ta_xmemdup(const void *mem, size_t n);
+
+// Wrapper around standard `free()` which sets the pointer to NULL.
+#define ta_xfree(ptr) do { if (__ta_likely(ptr)) { free(ptr); (ptr) = NULL; } } while (0)
+
+// Wrapper around `ta_free()` which sets the pointer to NULL.
+#define TA_FREE(ptr) do { if (__ta_likely(ptr)) { ta_free(ptr); (ptr) = NULL; } } while (0)
+
+// Wrapper around RAII macro which calls `ta_free()` on cleanup.
 #define TA_RAII(type, name, init) RAII(type *, name, ta_free, init)
 
+// Prototype of destructor which is called when TA chunk is freed.
 typedef void (*ta_destructor)(void *);
 
 // Create a new TA chunk.
@@ -76,13 +166,21 @@ void *ta_zalloc_array(void *restrict tactx, size_t size, size_t count);
 __ta_public __ta_nodiscard __ta_nonnull
 void *ta_realloc_array(void *restrict tactx, void *restrict ptr, size_t size, size_t count);
 
-// Create a new TA chunk from malloc'ed ptr.
+// Create a new TA chunk from a malloc'ed ptr.
 __ta_public __ta_nodiscard __ta_nonnull
 void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size);
 
-// Create a new TA chunk from memory block.
+// Create a new TA chunk from a memory block.
 __ta_public __ta_nodiscard __ta_nonnull
 void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size);
+
+// Create a new TA chunk from a string. The function is similar to `strdup()`.
+__ta_public __ta_nodiscard __ta_nonnull
+void *ta_strdup(void *restrict tactx, const char *restrict str);
+
+// Create a new TA chunk from a string. The function is similar to `strndup()`.
+__ta_public __ta_nodiscard __ta_nonnull
+void *ta_strndup(void *restrict tactx, const char *restrict str, size_t n);
 
 // Free a TA chunk.
 __ta_public
