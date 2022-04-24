@@ -11,6 +11,7 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(BUILD_TESTS "Build tests" OFF)
+option(ENABLE_VALGRIND "Run tests with valgrind" OFF)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -55,5 +56,21 @@ endif()
 if(BUILD_TESTS)
     include(CTest)
     find_package(CUnit REQUIRED)
+
+    if (ENABLE_VALGRIND)
+        find_program(VALGRIND valgrind)
+        if(VALGRIND)
+            set(VALGRIND_OPTIONS
+                --tool=memcheck
+                --leak-check=full
+                --show-leak-kinds=all
+                --track-fds=no
+                --track-origins=yes
+                --trace-children=yes
+                --error-exitcode=1
+            )
+        endif()
+    endif()
+
     add_subdirectory(test)
 endif(BUILD_TESTS)

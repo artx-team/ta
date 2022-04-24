@@ -5,4 +5,11 @@ target_include_directories(test_ta BEFORE PRIVATE
     ${CUNIT_INCLUDE_DIRS}
 )
 target_compile_options(test_ta PRIVATE ${TA_C_FLAGS})
-add_test(NAME test_ta COMMAND test_ta)
+
+if(VALGRIND)
+    add_test(NAME test_ta
+             COMMAND ${VALGRIND} ${VALGRIND_OPTIONS} ${CMAKE_CURRENT_BINARY_DIR}/test_ta)
+else()
+    add_test(NAME test_ta
+             COMMAND test_ta)
+endif()
