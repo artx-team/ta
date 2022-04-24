@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <stdarg.h>
 
 #ifndef __ta_has_builtin
 #   ifdef __has_builtin
@@ -68,6 +69,14 @@ extern "C" {
 #       define __ta_nonnull __attribute__((__returns_nonnull__))
 #   else
 #       define __ta_nonnull
+#   endif
+#endif
+
+#ifndef __ta_printf
+#   if defined(__GNUC__) || __ta_has_attribute(__format__)
+#       define __ta_printf(x, y) __attribute__((__format__(__printf__, x, y)))
+#   else
+#       define __ta_printf(x, y)
 #   endif
 #endif
 
@@ -197,6 +206,30 @@ char *ta_strndup_append(char *restrict str, const char *restrict append, size_t 
 // Append a length-limited string to a given TA buffer.
 __ta_public __ta_nodiscard __ta_nonnull
 char *ta_strndup_append_buffer(char *restrict str, const char *restrict append, size_t n);
+
+// Create a new TA chunk from a formatted string. The function is similar to `asprintf()`.
+__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 3)
+char *ta_asprintf(void *restrict tactx, const char *restrict format, ...);
+
+// Append a formatted string to a given TA string.
+__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 3)
+char *ta_asprintf_append(char *restrict str, const char *restrict format, ...);
+
+// Append a formatted string to a given TA buffer.
+__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 3)
+char *ta_asprintf_append_buffer(char *restrict str, const char *restrict format, ...);
+
+// Create a new TA chunk from a formatted string. The function is similar to `vasprintf()`.
+__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 0)
+char *ta_vasprintf(void *restrict tactx, const char *restrict format, va_list ap);
+
+// Append a formatted string to a given TA string.
+__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 0)
+char *ta_vasprintf_append(char *restrict str, const char *restrict format, va_list ap);
+
+// Append a formatted string to a given TA buffer.
+__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 0)
+char *ta_vasprintf_append_buffer(char *restrict str, const char *restrict format, va_list ap);
 
 // Free a TA chunk.
 __ta_public

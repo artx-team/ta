@@ -572,6 +572,135 @@ static void test_ta_strndup_append_buffer(void)
     ta_free(tactx);
 }
 
+static void test_ta_asprintf(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+
+    const char str[] = "hello, world";
+    {
+        char *ptr = ta_asprintf(tactx, "%.*s", 5, str);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(ptr), 6);
+        CU_ASSERT_NSTRING_EQUAL(ptr, str, 5);
+        ta_free(ptr);
+    }
+    {
+        char *ptr = ta_asprintf(tactx, "%s", str);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(str));
+        CU_ASSERT_NSTRING_EQUAL(ptr, str, sizeof(str));
+        ta_free(ptr);
+    }
+    {
+        char *ptr = ta_asprintf(NULL, "%s", "");
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
+        CU_ASSERT_EQUAL(ta_get_size(ptr), 1);
+        ta_free(ptr);
+    }
+    ta_free(tactx);
+}
+
+static void test_ta_asprintf_append(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    {
+        char *str = ta_asprintf(tactx, "%.*s", 5, "hello, world");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
+        CU_ASSERT_STRING_EQUAL(str, "hello");
+
+        str = ta_asprintf_append(str, "%.*s", 2, ", world");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
+        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+
+        str = ta_asprintf_append(str, "%.*s", 5, "world hello");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
+        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        ta_free(str);
+    }
+    {
+        char *str = ta_asprintf(tactx, "%s", "hello\0world");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
+        CU_ASSERT_STRING_EQUAL(str, "hello");
+
+        str = ta_asprintf_append(str, "%.*s", 2, ", world");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
+        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+
+        str = ta_asprintf_append(str, "%s", "world\0hello");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
+        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        ta_free(str);
+    }
+    ta_free(tactx);
+}
+
+static void test_ta_asprintf_append_buffer(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    {
+        char *str = ta_asprintf(tactx, "%.*s", 5, "hello, world");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
+        CU_ASSERT_STRING_EQUAL(str, "hello");
+
+        str = ta_asprintf_append_buffer(str, "%.*s", 2, ", world");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
+        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+
+        str = ta_asprintf_append_buffer(str, "%s", "world\0hello");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
+        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        ta_free(str);
+    }
+    {
+        char *str = ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world"));
+        CU_ASSERT_TRUE(!memcmp(str, "hello\0world", ta_get_size(str)));
+
+        str = ta_asprintf_append_buffer(str, "%.*s", 2, ", world");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world, "));
+        CU_ASSERT_TRUE(!memcmp(str, "hello\0world, ", ta_get_size(str)));
+
+        str = ta_asprintf_append_buffer(str, "%s", "world\0hello");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world, world"));
+        CU_ASSERT_TRUE(!memcmp(str, "hello\0world, world", ta_get_size(str)));
+        ta_free(str);
+    }
+    ta_free(tactx);
+}
+
 static void test_ta_get_parent(void)
 {
     void *tactx = ta_alloc(NULL, 0);
@@ -610,6 +739,9 @@ int main(void)
         !CU_ADD_TEST(pSuite, test_ta_strndup) ||
         !CU_ADD_TEST(pSuite, test_ta_strndup_append) ||
         !CU_ADD_TEST(pSuite, test_ta_strndup_append_buffer) ||
+        !CU_ADD_TEST(pSuite, test_ta_asprintf) ||
+        !CU_ADD_TEST(pSuite, test_ta_asprintf_append) ||
+        !CU_ADD_TEST(pSuite, test_ta_asprintf_append_buffer) ||
         !CU_ADD_TEST(pSuite, test_ta_get_parent)) {
         goto error;
     }
