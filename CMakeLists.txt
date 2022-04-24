@@ -3,6 +3,8 @@ project(ta C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
+include(GNUInstallDirs)
+
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(BUILD_TESTS "Build tests" OFF)
 option(ENABLE_VALGRIND "Run tests with valgrind" OFF)
