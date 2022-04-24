@@ -106,6 +106,55 @@ static void ta_header_free(struct ta_header *h)
     free(h);
 }
 
+static __ta_inline
+void *ta_header_realloc(struct ta_header *h, size_t size)
+{
+    struct ta_header *h_old = h;
+
+    h = realloc(h, TA_HDR_SIZE + size);
+    if (__ta_unlikely(!h))
+        abort();
+
+    h->size = size;
+
+    if (h != h_old) {
+        if (h->list)
+            h->list->prev = h;
+        if (h->next)
+            h->next->prev = h;
+        if (h->prev) {
+            if (h->prev->list == h_old) {
+                h->prev->list = h;
+            } else {
+                h->prev->next = h;
+            }
+        }
+    }
+
+    return TA_PTR_FROM_HDR(h);
+}
+
+static __ta_inline
+char *ta_header_append(struct ta_header *restrict h, size_t at,
+                       const char *restrict append, size_t len)
+{
+    if (__ta_unlikely(h->size < at))
+        abort();
+
+    if (__ta_unlikely(len >= TA_MAX_SIZE - 1 || at >= TA_MAX_SIZE - len - 1))
+        abort();
+
+    char *str = h->size < at + len + 1
+                ? ta_header_realloc(h, at + len + 1)
+                : TA_PTR_FROM_HDR(h);
+
+    if (__ta_likely(len))
+        memcpy(str + at, append, len);
+
+    str[at + len] = '\0';
+    return str;
+}
+
 void *ta_xmalloc(size_t size)
 {
     if (__ta_unlikely(!size))
@@ -215,29 +264,8 @@ void *ta_realloc(void *restrict tactx, void *restrict ptr, size_t size)
         abort();
 
     struct ta_header *h = ta_header_from_ptr(ptr);
-    struct ta_header *h_old = h;
-
-    h = realloc(h, TA_HDR_SIZE + size);
-    if (__ta_unlikely(!h))
-        abort();
-
-    h->size = size;
-
-    if (h != h_old) {
-        if (h->list)
-            h->list->prev = h;
-        if (h->next)
-            h->next->prev = h;
-        if (h->prev) {
-            if (h->prev->list == h_old) {
-                h->prev->list = h;
-            } else {
-                h->prev->next = h;
-            }
-        }
-    }
-
-    return ta_set_parent(TA_PTR_FROM_HDR(h), tactx);
+    ptr = ta_header_realloc(h, size);
+    return ta_set_parent(ptr, tactx);
 }
 
 void *ta_alloc_array(void *restrict tactx, size_t size, size_t count)
@@ -300,7 +328,7 @@ void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size)
     return ta_header_init(h, size, tactx);
 }
 
-void *ta_strdup(void *restrict tactx, const char *restrict str)
+char *ta_strdup(void *restrict tactx, const char *restrict str)
 {
     if (__ta_unlikely(!str))
         abort();
@@ -317,7 +345,25 @@ void *ta_strdup(void *restrict tactx, const char *restrict str)
     return ta_header_init(h, size, tactx);
 }
 
-void *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
+char *ta_strdup_append(char *restrict str, const char *restrict append)
+{
+    if (__ta_unlikely(!str || !append))
+        abort();
+
+    struct ta_header *h = ta_header_from_ptr(str);
+    return ta_header_append(h, strnlen(str, h->size), append, strlen(append));
+}
+
+char *ta_strdup_append_buffer(char *restrict str, const char *restrict append)
+{
+    if (__ta_unlikely(!str || !append))
+        abort();
+
+    struct ta_header *h = ta_header_from_ptr(str);
+    return ta_header_append(h, h->size ? h->size - 1 : 0, append, strlen(append));
+}
+
+char *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
 {
     if (__ta_unlikely(!str))
         abort();
@@ -336,6 +382,24 @@ void *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
 
     ptr[n] = '\0';
     return ta_header_init(h, n + 1, tactx);
+}
+
+char *ta_strndup_append(char *restrict str, const char *restrict append, size_t n)
+{
+    if (__ta_unlikely(!str || !append))
+        abort();
+
+    struct ta_header *h = ta_header_from_ptr(str);
+    return ta_header_append(h, strnlen(str, h->size), append, strnlen(append, n));
+}
+
+char *ta_strndup_append_buffer(char *restrict str, const char *restrict append, size_t n)
+{
+    if (__ta_unlikely(!str || !append))
+        abort();
+
+    struct ta_header *h = ta_header_from_ptr(str);
+    return ta_header_append(h, h->size ? h->size - 1 : 0, append, strnlen(append, n));
 }
 
 void ta_free(void *ptr)

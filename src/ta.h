@@ -176,11 +176,27 @@ void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size);
 
 // Create a new TA chunk from a string. The function is similar to `strdup()`.
 __ta_public __ta_nodiscard __ta_nonnull
-void *ta_strdup(void *restrict tactx, const char *restrict str);
+char *ta_strdup(void *restrict tactx, const char *restrict str);
 
-// Create a new TA chunk from a string. The function is similar to `strndup()`.
+// Append a string to a given TA string.
 __ta_public __ta_nodiscard __ta_nonnull
-void *ta_strndup(void *restrict tactx, const char *restrict str, size_t n);
+char *ta_strdup_append(char *restrict str, const char *restrict append);
+
+// Append a string to a given TA buffer.
+__ta_public __ta_nodiscard __ta_nonnull
+char *ta_strdup_append_buffer(char *restrict str, const char *restrict append);
+
+// Create a new TA chunk from a length-limited string. The function is similar to `strndup()`.
+__ta_public __ta_nodiscard __ta_nonnull
+char *ta_strndup(void *restrict tactx, const char *restrict str, size_t n);
+
+// Append a length-limited string to a given TA string.
+__ta_public __ta_nodiscard __ta_nonnull
+char *ta_strndup_append(char *restrict str, const char *restrict append, size_t n);
+
+// Append a length-limited string to a given TA buffer.
+__ta_public __ta_nodiscard __ta_nonnull
+char *ta_strndup_append_buffer(char *restrict str, const char *restrict append, size_t n);
 
 // Free a TA chunk.
 __ta_public
