@@ -255,9 +255,57 @@ void *ta_set_parent(void *restrict ptr, void *restrict tactx);
 __ta_public __ta_nodiscard
 void *ta_get_parent(void *ptr);
 
+// Get the first child of a TA chunk.
+__ta_public __ta_nodiscard
+void *ta_get_child(void *ptr);
+
+// Get the next TA chunk which has the same parent.
+__ta_public __ta_nodiscard
+void *ta_get_next(void *ptr);
+
+// Get the previous TA chunk which has the same parent.
+__ta_public __ta_nodiscard
+void *ta_get_prev(void *ptr);
+
 // Get the size of a TA chunk.
 __ta_public __ta_nodiscard
 size_t ta_get_size(void *ptr);
+
+// Forward traversal of all children of a TA chunk.
+#define TA_FOREACH(ptr, tactx) \
+    for ((ptr) = ta_get_child(tactx); \
+         (ptr); \
+         (ptr) = ta_get_next(ptr))
+
+// Forward traversal of all children of a TA chunk optionally starting from `ptr`.
+#define TA_FOREACH_FROM(ptr, tactx) \
+    for ((ptr) = ((ptr) ? (ptr) : ta_get_child(tactx)); \
+         (ptr); \
+         (ptr) = ta_get_next(ptr))
+
+// Forward traversal of all children of a TA chunk (safe version).
+#define TA_FOREACH_SAFE(ptr, tactx, tmp) \
+    for ((ptr) = ta_get_child(tactx); \
+         (ptr) && ((tmp) = ta_get_next(ptr), 1); \
+         (ptr) = (tmp))
+
+// Forward traversal of all children of a TA chunk (safe version) optionally starting from `ptr`.
+#define TA_FOREACH_FROM_SAFE(ptr, tactx, tmp) \
+    for ((ptr) = ((ptr) ? (ptr) : ta_get_child(tactx)); \
+         (ptr) && ((tmp) = ta_get_next(ptr), 1); \
+         (ptr) = (tmp))
+
+// Reverse traversal of all children of a TA chunk starting from `ptr`.
+#define TB_FOREACH_REVERSE_FROM(ptr, tactx) \
+    for (; \
+         (ptr); \
+         (ptr) = ta_get_prev(ptr))
+
+// Reverse traversal of all children of a TA chunk (safe version) starting from `ptr`.
+#define TB_FOREACH_REVERSE_FROM_SAFE(ptr, tactx, tmp) \
+    for (; \
+         (ptr) && ((tmp) = ta_get_prev(ptr), 1); \
+         (ptr) = (tmp))
 
 #ifdef __cplusplus
 }

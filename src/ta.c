@@ -569,6 +569,24 @@ void *ta_get_parent(void *ptr)
     return h->prev ? TA_PTR_FROM_HDR(h->prev) : NULL;
 }
 
+void *ta_get_child(void *ptr)
+{
+    struct ta_header *h = ta_header_from_ptr(ptr);
+    return h->list ? TA_PTR_FROM_HDR(h->list) : NULL;
+}
+
+void *ta_get_next(void *ptr)
+{
+    struct ta_header *h = ta_header_from_ptr(ptr);
+    return h->next ? TA_PTR_FROM_HDR(h->next) : NULL;
+}
+
+void *ta_get_prev(void *ptr)
+{
+    struct ta_header *h = ta_header_from_ptr(ptr);
+    return h->prev && h->prev->list != h ? TA_PTR_FROM_HDR(h->prev) : NULL;
+}
+
 size_t ta_get_size(void *ptr)
 {
     struct ta_header *h = ta_header_from_ptr(ptr);

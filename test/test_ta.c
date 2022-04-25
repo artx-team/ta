@@ -5,6 +5,162 @@
 
 #include "ta.h"
 
+static void test_ta_get_parent(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+
+    for (size_t i = 0; i < 5; ++i) {
+        void *ptr = ta_get_parent(ta_alloc(tactx, i));
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ptr, tactx);
+    }
+
+    ta_free(tactx);
+}
+
+static void test_ta_get_size(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    CU_ASSERT_EQUAL(ta_get_size(tactx), 0);
+
+    for (size_t i = 0; i < 5; ++i) {
+        void *ptr = ta_alloc(tactx, i);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(ptr), i);
+    }
+
+    ta_free(tactx);
+}
+
+static void test_ta_get_child(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    CU_ASSERT_PTR_NULL(ta_get_child(tactx));
+
+    for (size_t i = 0; i < 5; ++i) {
+        void *ptr = ta_alloc(tactx, i);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_PTR_EQUAL(ta_get_child(tactx), ptr);
+    }
+
+    for (size_t i = 0; i < 3; ++i) {
+        void *ptr = ta_get_child(tactx);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        ta_free(ptr);
+        CU_ASSERT_PTR_NOT_EQUAL(ta_get_child(tactx), ptr);
+    }
+
+    {
+        void *ptr = ta_get_child(tactx);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(ptr), 1);
+        ta_free(ptr);
+    }
+
+    {
+        void *ptr = ta_get_child(tactx);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        ta_free(ptr);
+    }
+
+    {
+        void *ptr = ta_get_child(tactx);
+        CU_ASSERT_PTR_NULL(ptr);
+    }
+
+    ta_free(tactx);
+}
+
+static void test_ta_get_next(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    CU_ASSERT_PTR_NULL(ta_get_next(tactx));
+
+    for (size_t i = 0; i < 5; ++i) {
+        void *tmp = ta_get_child(tactx);
+        void *ptr = ta_alloc(tactx, i);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_PTR_EQUAL(ta_get_next(ptr), tmp);
+    }
+
+    for (size_t i = 0; i < 3; ++i) {
+        void *tmp = ta_get_child(tactx);
+        CU_ASSERT_PTR_NOT_NULL(tmp);
+        void *ptr = ta_get_next(tmp);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        ta_free(tmp);
+        CU_ASSERT_PTR_EQUAL(ta_get_child(tactx), ptr);
+    }
+
+    {
+        void *tmp = ta_get_child(tactx);
+        CU_ASSERT_PTR_NOT_NULL(tmp);
+        void *ptr = ta_get_next(tmp);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(tmp), 1);
+        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        ta_free(tmp);
+    }
+
+    {
+        void *tmp = ta_get_child(tactx);
+        CU_ASSERT_PTR_NOT_NULL(tmp);
+        void *ptr = ta_get_next(tmp);
+        CU_ASSERT_PTR_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(tmp), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(tmp), 0);
+        ta_free(tmp);
+    }
+
+    ta_free(tactx);
+}
+
+static void test_ta_get_prev(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    CU_ASSERT_PTR_NULL(ta_get_prev(tactx));
+
+    for (size_t i = 0; i < 5; ++i) {
+        void *tmp = ta_get_child(tactx);
+        void *ptr = ta_alloc(tactx, i);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_PTR_EQUAL(ta_get_prev(ptr), NULL);
+        if (tmp)
+            CU_ASSERT_PTR_EQUAL(ta_get_prev(tmp), ptr);
+    }
+
+    for (size_t i = 0; i < 3; ++i) {
+        void *ptr = ta_get_child(tactx);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_NULL(ta_get_prev(ptr));
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_PTR_EQUAL(ta_get_prev(ta_get_next(ptr)), ptr);
+        ta_free(ptr);
+    }
+
+    ta_free(tactx);
+}
+
 static void test_ta_alloc(void)
 {
     void *tactx = ta_alloc(NULL, 0);
@@ -701,16 +857,24 @@ static void test_ta_asprintf_append_buffer(void)
     ta_free(tactx);
 }
 
-static void test_ta_get_parent(void)
+static void test_ta_foreach(void)
 {
     void *tactx = ta_alloc(NULL, 0);
     CU_ASSERT_PTR_NOT_NULL(tactx);
     CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
 
-    for (size_t i = 0; i < 5; ++i) {
-        void *ptr = ta_get_parent(ta_alloc(tactx, i));
+    size_t j = 5;
+    for (size_t i = 0; i < j; ++i) {
+        void *ptr = ta_alloc(tactx, i);
         CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ptr, tactx);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+    }
+
+    void *ptr;
+    TA_FOREACH(ptr, tactx) {
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        CU_ASSERT_EQUAL(ta_get_size(ptr), --j);
     }
 
     ta_free(tactx);
@@ -725,7 +889,12 @@ int main(void)
     if (!pSuite)
         goto error;
 
-    if (!CU_ADD_TEST(pSuite, test_ta_alloc) ||
+    if (!CU_ADD_TEST(pSuite, test_ta_get_parent) ||
+        !CU_ADD_TEST(pSuite, test_ta_get_size) ||
+        !CU_ADD_TEST(pSuite, test_ta_get_child) ||
+        !CU_ADD_TEST(pSuite, test_ta_get_next) ||
+        !CU_ADD_TEST(pSuite, test_ta_get_prev) ||
+        !CU_ADD_TEST(pSuite, test_ta_alloc) ||
         !CU_ADD_TEST(pSuite, test_ta_zalloc) ||
         !CU_ADD_TEST(pSuite, test_ta_realloc) ||
         !CU_ADD_TEST(pSuite, test_ta_alloc_array) ||
@@ -742,7 +911,7 @@ int main(void)
         !CU_ADD_TEST(pSuite, test_ta_asprintf) ||
         !CU_ADD_TEST(pSuite, test_ta_asprintf_append) ||
         !CU_ADD_TEST(pSuite, test_ta_asprintf_append_buffer) ||
-        !CU_ADD_TEST(pSuite, test_ta_get_parent)) {
+        !CU_ADD_TEST(pSuite, test_ta_foreach)) {
         goto error;
     }
 
