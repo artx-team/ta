@@ -516,10 +516,12 @@ void ta_free_children(void *ptr)
         ta_header_free(h->list);
 }
 
-void ta_set_destructor(void *restrict ptr, ta_destructor destructor)
+ta_destructor ta_set_destructor(void *restrict ptr, ta_destructor destructor)
 {
     struct ta_header *h = ta_header_from_ptr(ptr);
+    ta_destructor prev_destructor = h->destructor;
     h->destructor = destructor;
+    return prev_destructor;
 }
 
 ta_destructor ta_get_destructor(void *ptr)

@@ -241,7 +241,7 @@ void ta_free_children(void *ptr);
 
 // Set the destructor function to be called when a TA chunk is freed.
 __ta_public
-void ta_set_destructor(void *restrict ptr, ta_destructor destructor);
+ta_destructor ta_set_destructor(void *restrict ptr, ta_destructor destructor);
 
 // Get the destructor function of a TA chunk.
 __ta_public __ta_nodiscard
