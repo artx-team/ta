@@ -105,7 +105,7 @@ if(BUILD_TESTS)
     include(CTest)
     find_package(CUnit REQUIRED)
 
-    if (ENABLE_VALGRIND)
+    if(ENABLE_VALGRIND)
         find_program(VALGRIND valgrind)
         if(VALGRIND)
             set(VALGRIND_OPTIONS

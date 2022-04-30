@@ -9,7 +9,7 @@ Unlike standard malloc, allocation size may be zero, in which case there is an e
 allocation which can still be used as a parent for other allocations.
 
 ````bash
-cmake . -Bbuild 
+cmake . -Bbuild
 cmake --build build
 ````
 
