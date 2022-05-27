@@ -15,6 +15,7 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #ifndef __ta_has_builtin
 #   ifdef __has_builtin
@@ -254,6 +255,14 @@ void *ta_set_parent(void *restrict ptr, void *restrict tactx);
 // Get the parent of a TA chunk.
 __ta_public __ta_nodiscard
 void *ta_get_parent(void *ptr);
+
+// Recursively check if a TA chunk has the parent.
+__ta_public __ta_nodiscard
+bool ta_has_parent(void *ptr, void *tactx);
+
+// Recursively check if a TA chunk has the child.
+__ta_public __ta_nodiscard
+bool ta_has_child(void *tactx, void *ptr);
 
 // Get the first child of a TA chunk.
 __ta_public __ta_nodiscard

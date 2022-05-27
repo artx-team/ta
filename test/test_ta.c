@@ -161,6 +161,88 @@ static void test_ta_get_prev(void)
     ta_free(tactx);
 }
 
+static void test_ta_has_parent(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    CU_ASSERT_FALSE(ta_has_parent(tactx, NULL));
+    CU_ASSERT_FALSE(ta_has_parent(tactx, tactx));
+
+    void *ptr1 = ta_alloc(tactx, 0);
+    CU_ASSERT_PTR_NOT_NULL(ptr1);
+    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr1), tactx);
+    CU_ASSERT_FALSE(ta_has_parent(ptr1, NULL));
+    CU_ASSERT_FALSE(ta_has_parent(ptr1, ptr1));
+    CU_ASSERT_TRUE(ta_has_parent(ptr1, tactx));
+    CU_ASSERT_FALSE(ta_has_parent(tactx, ptr1));
+
+    void *ptr2 = ta_alloc(tactx, 0);
+    CU_ASSERT_PTR_NOT_NULL(ptr2);
+    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr2), tactx);
+    CU_ASSERT_FALSE(ta_has_parent(ptr2, NULL));
+    CU_ASSERT_FALSE(ta_has_parent(ptr2, ptr2));
+    CU_ASSERT_TRUE(ta_has_parent(ptr2, tactx));
+    CU_ASSERT_FALSE(ta_has_parent(tactx, ptr2));
+    CU_ASSERT_FALSE(ta_has_parent(ptr2, ptr1));
+    CU_ASSERT_FALSE(ta_has_parent(ptr1, ptr2));
+
+    void *ptr3 = ta_alloc(ptr1, 0);
+    CU_ASSERT_PTR_NOT_NULL(ptr3);
+    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr3), ptr1);
+    CU_ASSERT_FALSE(ta_has_parent(ptr3, NULL));
+    CU_ASSERT_FALSE(ta_has_parent(ptr3, ptr3));
+    CU_ASSERT_TRUE(ta_has_parent(ptr3, tactx));
+    CU_ASSERT_FALSE(ta_has_parent(tactx, ptr3));
+    CU_ASSERT_TRUE(ta_has_parent(ptr3, ptr1));
+    CU_ASSERT_FALSE(ta_has_parent(ptr1, ptr3));
+    CU_ASSERT_FALSE(ta_has_parent(ptr3, ptr2));
+    CU_ASSERT_FALSE(ta_has_parent(ptr2, ptr3));
+
+    ta_free(tactx);
+}
+
+static void test_ta_has_child(void)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    CU_ASSERT_FALSE(ta_has_child(tactx, NULL));
+    CU_ASSERT_FALSE(ta_has_child(tactx, tactx));
+
+    void *ptr1 = ta_alloc(tactx, 0);
+    CU_ASSERT_PTR_NOT_NULL(ptr1);
+    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr1), tactx);
+    CU_ASSERT_FALSE(ta_has_child(ptr1, NULL));
+    CU_ASSERT_FALSE(ta_has_child(ptr1, ptr1));
+    CU_ASSERT_FALSE(ta_has_child(ptr1, tactx));
+    CU_ASSERT_TRUE(ta_has_child(tactx, ptr1));
+
+    void *ptr2 = ta_alloc(tactx, 0);
+    CU_ASSERT_PTR_NOT_NULL(ptr2);
+    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr2), tactx);
+    CU_ASSERT_FALSE(ta_has_child(ptr2, NULL));
+    CU_ASSERT_FALSE(ta_has_child(ptr2, ptr2));
+    CU_ASSERT_FALSE(ta_has_child(ptr2, tactx));
+    CU_ASSERT_TRUE(ta_has_child(tactx, ptr2));
+    CU_ASSERT_FALSE(ta_has_child(ptr2, ptr1));
+    CU_ASSERT_FALSE(ta_has_child(ptr1, ptr2));
+
+    void *ptr3 = ta_alloc(ptr1, 0);
+    CU_ASSERT_PTR_NOT_NULL(ptr3);
+    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr3), ptr1);
+    CU_ASSERT_FALSE(ta_has_child(ptr3, NULL));
+    CU_ASSERT_FALSE(ta_has_child(ptr3, ptr3));
+    CU_ASSERT_FALSE(ta_has_child(ptr3, tactx));
+    CU_ASSERT_TRUE(ta_has_child(tactx, ptr3));
+    CU_ASSERT_FALSE(ta_has_child(ptr3, ptr1));
+    CU_ASSERT_TRUE(ta_has_child(ptr1, ptr3));
+    CU_ASSERT_FALSE(ta_has_child(ptr3, ptr2));
+    CU_ASSERT_FALSE(ta_has_child(ptr2, ptr3));
+
+    ta_free(tactx);
+}
+
 static void test_ta_alloc(void)
 {
     void *tactx = ta_alloc(NULL, 0);
@@ -894,6 +976,8 @@ int main(void)
         !CU_ADD_TEST(pSuite, test_ta_get_child) ||
         !CU_ADD_TEST(pSuite, test_ta_get_next) ||
         !CU_ADD_TEST(pSuite, test_ta_get_prev) ||
+        !CU_ADD_TEST(pSuite, test_ta_has_parent) ||
+        !CU_ADD_TEST(pSuite, test_ta_has_child) ||
         !CU_ADD_TEST(pSuite, test_ta_alloc) ||
         !CU_ADD_TEST(pSuite, test_ta_zalloc) ||
         !CU_ADD_TEST(pSuite, test_ta_realloc) ||

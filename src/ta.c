@@ -1,7 +1,7 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdalign.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "ta.h"
@@ -566,9 +566,47 @@ void *ta_set_parent(void *restrict ptr, void *restrict tactx)
 void *ta_get_parent(void *ptr)
 {
     struct ta_header *h = ta_header_from_ptr(ptr);
-    while (h->prev && h->prev->list != h)
+    if (!h->prev)
+        return NULL;
+    while (h->prev->list != h)
         h = h->prev;
-    return h->prev ? TA_PTR_FROM_HDR(h->prev) : NULL;
+    return TA_PTR_FROM_HDR(h->prev);
+}
+
+static __ta_inline __ta_nodiscard
+bool ta_lookup_parent(struct ta_header *h, struct ta_header *h_parent)
+{
+    for (;;) {
+        if (!h->prev)
+            return false;
+        while (h->prev->list != h)
+            h = h->prev;
+        if (h->prev == h_parent)
+            return true;
+        h = h->prev;
+    }
+}
+
+bool ta_has_parent(void *ptr, void *tactx)
+{
+    struct ta_header *h = ta_header_from_ptr(ptr);
+
+    if (__ta_unlikely(!tactx || ptr == tactx))
+        return false;
+
+    struct ta_header *h_parent = ta_header_from_ptr(tactx);
+    return ta_lookup_parent(h, h_parent);
+}
+
+bool ta_has_child(void *tactx, void *ptr)
+{
+    struct ta_header *h_parent = ta_header_from_ptr(tactx);
+
+    if (__ta_unlikely(!ptr || ptr == tactx))
+        return false;
+
+    struct ta_header *h = ta_header_from_ptr(ptr);
+    return ta_lookup_parent(h, h_parent);
 }
 
 void *ta_get_child(void *ptr)
