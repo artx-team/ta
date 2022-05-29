@@ -1,8 +1,12 @@
 # TA memory allocator
 
-TA ("Tree Allocator") is a hierarchical memory allocator with destructors.
+[![Build](https://img.shields.io/github/workflow/status/pavelxdd/ta/cmake?style=flat)](https://github.com/pavelxdd/ta/actions)
+[![Codecov](https://img.shields.io/codecov/c/gh/pavelxdd/ta?style=flat)](https://codecov.io/gh/pavelxdd/ta)
+[![License](https://img.shields.io/github/license/pavelxdd/ta?style=flat&color=blue)](https://github.com/pavelxdd/ta/blob/master/UNLICENSE)
 
-Essentially it is a wrapper around `malloc()` and related functions.
+TA (Tree Allocator) is a hierarchical memory allocator with destructors.
+
+Essentially it is a wrapper around malloc and related functions.
 When a parent allocation is freed all child memory allocations are automatically freed too.
 
 Unlike standard malloc, allocation size may be zero, in which case there is an empty
@@ -15,5 +19,5 @@ cmake --build build
 
 References:
 
-- [mpv talloc](https://github.com/mpv-player/mpv/tree/master/ta)
 - [samba talloc](https://talloc.samba.org/talloc/doc/html/index.html)
+- [mpv talloc](https://github.com/mpv-player/mpv/tree/master/ta)

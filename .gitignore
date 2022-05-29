@@ -1,5 +1,5 @@
 .*/
-!.githooks/
+!.github/
 .vscode/
 .vscode-ctags
 /build*/

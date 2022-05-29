@@ -1,0 +1,117 @@
+name: cmake
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type:
+          - Debug
+          - Release
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Prepare
+      shell: bash
+      run: sudo apt update; sudo apt install libcunit1-dev
+
+    - name: CMake
+      shell: bash
+      run: |
+        cmake -E make_directory ${{runner.workspace}}/build
+        cd ${{runner.workspace}}/build
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DBUILD_TESTS=ON
+
+    - name: Build
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config ${{matrix.build_type}}
+
+    - name: Test
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: ctest -C ${{matrix.build_type}} --output-on-failure
+
+  valgrind:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Prepare
+      shell: bash
+      run: sudo apt update; sudo apt install libcunit1-dev valgrind
+
+    - name: CMake
+      shell: bash
+      run: |
+        cmake -E make_directory ${{runner.workspace}}/build
+        cd ${{runner.workspace}}/build
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTS=ON -DENABLE_VALGRIND=ON
+
+    - name: Build
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config FullDebug
+
+    - name: Test
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: ctest -C FullDebug --output-on-failure
+
+  analyzer:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Prepare
+      shell: bash
+      run: sudo apt update; sudo apt install libcunit1-dev
+
+    - name: CMake
+      shell: bash
+      run: |
+        cmake -E make_directory ${{runner.workspace}}/build
+        cd ${{runner.workspace}}/build
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTS=ON -DENABLE_ANALYZER=ON
+
+    - name: Build
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config FullDebug
+
+    - name: Test
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: ctest -C FullDebug --output-on-failure
+
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Prepare
+      shell: bash
+      run: sudo apt update; sudo apt install libcunit1-dev
+
+    - name: CodeCov
+      shell: bash
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON
+        cmake --build . --config FullDebug
+        ctest -C FullDebug --output-on-failure
+        bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"

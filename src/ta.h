@@ -1,8 +1,8 @@
 #pragma once
 
-/* TA ("Tree Allocator") is a hierarchical memory allocator with destructors.
+/* TA (Tree Allocator) is a hierarchical memory allocator with destructors.
  *
- * Essentially it is a wrapper around `malloc()` and related functions.
+ * Essentially it is a wrapper around malloc and related functions.
  * When a parent allocation is freed all child memory allocations are automatically freed too.
  *
  * Unlike standard malloc, allocation size may be zero, in which case there is an empty
