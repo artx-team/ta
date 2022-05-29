@@ -82,6 +82,9 @@ set(TA_C_FLAGS
 
 if(ENABLE_ANALYZER AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
     list(APPEND TA_C_FLAGS -fanalyzer)
+    if(CMAKE_C_COMPILER_VERSION VERSION_LESS "12.0.0")
+        list(APPEND TA_C_FLAGS -Wno-analyzer-mismatching-deallocation)
+    endif()
 endif()
 
 if(ENABLE_COVERAGE)
