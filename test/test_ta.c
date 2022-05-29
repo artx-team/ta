@@ -5,6 +5,118 @@
 
 #include "ta.h"
 
+static void test_ta_xmalloc(void)
+{
+    for (size_t i = 0; i < 100; ++i) {
+        void *ptr = ta_xmalloc(i);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        free(ptr);
+    }
+}
+
+static void test_ta_xcalloc(void)
+{
+    for (size_t i = 0; i < 10; ++i) {
+        for (size_t j = 0; j < 10; ++j) {
+            void *ptr = ta_xcalloc(i, j);
+            CU_ASSERT_PTR_NOT_NULL(ptr);
+            free(ptr);
+        }
+    }
+}
+
+static void test_ta_xrealloc(void)
+{
+    void *ptr = ta_xrealloc(NULL, 0);
+    CU_ASSERT_PTR_NOT_NULL(ptr);
+    ptr = ta_xrealloc(ptr, 100);
+    CU_ASSERT_PTR_NOT_NULL(ptr);
+    ptr = ta_xrealloc(ptr, 0);
+    CU_ASSERT_PTR_NOT_NULL(ptr);
+    free(ptr);
+}
+
+static void test_ta_xzalloc(void)
+{
+    for (size_t i = 0; i < 100; ++i) {
+        void *ptr = ta_xzalloc(i);
+        CU_ASSERT_PTR_NOT_NULL(ptr);
+        free(ptr);
+    }
+}
+
+static void test_ta_xstrdup(void)
+{
+    {
+        char *str = ta_xstrdup("");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_STRING_EQUAL(str, "");
+        free(str);
+    }
+    {
+        char *str = ta_xstrdup("test");
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_STRING_EQUAL(str, "test");
+        free(str);
+    }
+}
+
+static void test_ta_xstrndup(void)
+{
+    {
+        char *str = ta_xstrndup("", 0);
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_NSTRING_EQUAL(str, "", 0);
+        free(str);
+    }
+    {
+        char *str = ta_xstrndup("test", 0);
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_NSTRING_EQUAL(str, "test", 0);
+        free(str);
+    }
+    {
+        char *str = ta_xstrndup("test", 2);
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_NSTRING_EQUAL(str, "test", 2);
+        free(str);
+    }
+    {
+        char *str = ta_xstrndup("test", 10);
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_NSTRING_EQUAL(str, "test", 10);
+        free(str);
+    }
+}
+
+static void test_ta_xmemdup(void)
+{
+    {
+        char *str = ta_xmemdup("", 0);
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_NSTRING_EQUAL(str, "", 0);
+        free(str);
+    }
+    {
+        char *str = ta_xmemdup("test", 0);
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_NSTRING_EQUAL(str, "test", 0);
+        free(str);
+    }
+    {
+        char *str = ta_xmemdup("test", 2);
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_NSTRING_EQUAL(str, "test", 2);
+        free(str);
+    }
+    {
+        char *str = ta_xmemdup("test", 5);
+        CU_ASSERT_PTR_NOT_NULL(str);
+        CU_ASSERT_STRING_EQUAL(str, "test");
+        free(str);
+    }
+}
+
 static void test_ta_get_parent(void)
 {
     void *tactx = ta_alloc(NULL, 0);
@@ -17,6 +129,11 @@ static void test_ta_get_parent(void)
         CU_ASSERT_PTR_EQUAL(ptr, tactx);
     }
 
+    tactx = ta_realloc(NULL, tactx, 100);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NOT_NULL(ta_get_child(tactx));
+
+    ta_free_children(tactx);
     ta_free(tactx);
 }
 
@@ -34,6 +151,11 @@ static void test_ta_get_size(void)
         CU_ASSERT_EQUAL(ta_get_size(ptr), i);
     }
 
+    tactx = ta_realloc(NULL, tactx, 100);
+    CU_ASSERT_PTR_NOT_NULL(tactx);
+    CU_ASSERT_PTR_NOT_NULL(ta_get_child(tactx));
+
+    ta_free_children(tactx);
     ta_free(tactx);
 }
 
@@ -64,6 +186,7 @@ static void test_ta_get_child(void)
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), 1);
+        ta_set_parent(ptr, NULL);
         ta_free(ptr);
     }
 
@@ -72,6 +195,7 @@ static void test_ta_get_child(void)
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        ta_set_parent(ptr, NULL);
         ta_free(ptr);
     }
 
@@ -199,6 +323,7 @@ static void test_ta_has_parent(void)
     CU_ASSERT_FALSE(ta_has_parent(ptr3, ptr2));
     CU_ASSERT_FALSE(ta_has_parent(ptr2, ptr3));
 
+    ta_free(ptr2);
     ta_free(tactx);
 }
 
@@ -240,6 +365,7 @@ static void test_ta_has_child(void)
     CU_ASSERT_FALSE(ta_has_child(ptr3, ptr2));
     CU_ASSERT_FALSE(ta_has_child(ptr2, ptr3));
 
+    ta_free(ptr2);
     ta_free(tactx);
 }
 
@@ -939,6 +1065,28 @@ static void test_ta_asprintf_append_buffer(void)
     ta_free(tactx);
 }
 
+struct ctx {
+    int *a;
+};
+
+static void ctx_destructor(void *ptr)
+{
+    struct ctx *ctx = (struct ctx *)ptr;
+    *ctx->a = 2;
+}
+
+static void test_ta_destructor(void)
+{
+    int a = 1;
+    struct ctx *ctx = ta_alloc(NULL, sizeof(struct ctx));
+    CU_ASSERT_PTR_NULL(ta_get_destructor(ctx));
+    ctx->a = &a;
+    ta_set_destructor(ctx, ctx_destructor);
+    CU_ASSERT_PTR_EQUAL(ta_get_destructor(ctx), ctx_destructor);
+    ta_free(ctx);
+    CU_ASSERT_EQUAL(a, 2);
+}
+
 static void test_ta_foreach(void)
 {
     void *tactx = ta_alloc(NULL, 0);
@@ -971,7 +1119,14 @@ int main(void)
     if (!pSuite)
         goto error;
 
-    if (!CU_ADD_TEST(pSuite, test_ta_get_parent) ||
+    if (!CU_ADD_TEST(pSuite, test_ta_xmalloc) ||
+        !CU_ADD_TEST(pSuite, test_ta_xcalloc) ||
+        !CU_ADD_TEST(pSuite, test_ta_xrealloc) ||
+        !CU_ADD_TEST(pSuite, test_ta_xzalloc) ||
+        !CU_ADD_TEST(pSuite, test_ta_xstrdup) ||
+        !CU_ADD_TEST(pSuite, test_ta_xstrndup) ||
+        !CU_ADD_TEST(pSuite, test_ta_xmemdup) ||
+        !CU_ADD_TEST(pSuite, test_ta_get_parent) ||
         !CU_ADD_TEST(pSuite, test_ta_get_size) ||
         !CU_ADD_TEST(pSuite, test_ta_get_child) ||
         !CU_ADD_TEST(pSuite, test_ta_get_next) ||
@@ -995,6 +1150,7 @@ int main(void)
         !CU_ADD_TEST(pSuite, test_ta_asprintf) ||
         !CU_ADD_TEST(pSuite, test_ta_asprintf_append) ||
         !CU_ADD_TEST(pSuite, test_ta_asprintf_append_buffer) ||
+        !CU_ADD_TEST(pSuite, test_ta_destructor) ||
         !CU_ADD_TEST(pSuite, test_ta_foreach)) {
         goto error;
     }
