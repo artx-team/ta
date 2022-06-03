@@ -82,9 +82,9 @@ static void test_ta_xstrndup(void)
         free(str);
     }
     {
-        char *str = ta_xstrndup("test", 10);
+        char *str = ta_xstrndup("test", 5);
         CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_NSTRING_EQUAL(str, "test", 10);
+        CU_ASSERT_NSTRING_EQUAL(str, "test", 5);
         free(str);
     }
 }
