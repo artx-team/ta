@@ -1,4 +1,9 @@
 add_library(ta ta.c)
+set_target_properties(ta PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    POSITION_INDEPENDENT_CODE ${CMAKE_POSITION_INDEPENDENT_CODE}
+    INTERPROCEDURAL_OPTIMIZATION ${CMAKE_INTERPROCEDURAL_OPTIMIZATION}
+)
 target_include_directories(ta BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(ta PRIVATE ${TA_C_FLAGS})
 target_link_libraries(ta INTERFACE ${TA_C_FLAGS})

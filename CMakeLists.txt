@@ -72,13 +72,26 @@ set(TA_C_FLAGS
     -Wundef
     -pedantic
     -pedantic-errors
-    -fvisibility=hidden
     -Wmissing-prototypes
     -Wstrict-prototypes
     -Wdouble-promotion
     -Wconversion
     -Wundef
 )
+
+if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+elseif(CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT IPO_SUPPORTED LANGUAGES C)
+    if(NOT IPO_SUPPORTED)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+    endif()
+endif()
 
 if(ENABLE_ANALYZER AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
     list(APPEND TA_C_FLAGS -fanalyzer)
