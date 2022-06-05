@@ -42,6 +42,39 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: ctest -C ${{matrix.build_type}} --output-on-failure
 
+  macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type:
+          - Debug
+          - Release
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Prepare
+      shell: bash
+      run: brew install cunit
+
+    - name: CMake
+      shell: bash
+      run: |
+        cmake -E make_directory ${{runner.workspace}}/build
+        cd ${{runner.workspace}}/build
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DBUILD_TESTS=ON
+
+    - name: Build
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config ${{matrix.build_type}}
+
+    - name: Test
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: ctest -C ${{matrix.build_type}} --output-on-failure
+
   valgrind:
     runs-on: ubuntu-latest
 
