@@ -240,6 +240,10 @@ void ta_free(void *ptr);
 __ta_public
 void ta_free_children(void *ptr);
 
+// Move children from one TA chunk to another.
+__ta_public
+void ta_move_children(void *restrict src, void *restrict dst);
+
 // Set the destructor function to be called when a TA chunk is freed.
 __ta_public
 ta_destructor ta_set_destructor(void *restrict ptr, ta_destructor destructor);

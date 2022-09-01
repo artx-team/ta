@@ -185,6 +185,36 @@ char *ta_header_printf(struct ta_header *restrict h, size_t at,
     return str;
 }
 
+static __ta_inline
+void ta_header_set_parent(struct ta_header *restrict h,
+                          struct ta_header *restrict h_parent)
+{
+    if (h->prev) {
+        if (h->prev->list == h) {
+            if (h->prev == h_parent)
+                return;
+            h->prev->list = h->next;
+        } else {
+            h->prev->next = h->next;
+        }
+        if (h->next)
+            h->next->prev = h->prev;
+    }
+
+    if (h_parent) {
+        if (h_parent->list) {
+            h->next = h_parent->list;
+            h->next->prev = h;
+        } else {
+            h->next = NULL;
+        }
+        h->prev = h_parent;
+        h->prev->list = h;
+    } else {
+        h->prev = h->next = NULL;
+    }
+}
+
 void *ta_xmalloc(size_t size)
 {
     if (__ta_unlikely(!size))
@@ -516,6 +546,36 @@ void ta_free_children(void *ptr)
         ta_header_free(h->list);
 }
 
+void ta_move_children(void *restrict src, void *restrict dst)
+{
+    struct ta_header *h_src = ta_header_from_ptr(src);
+    struct ta_header *h_dst = dst ? ta_header_from_ptr(dst) : NULL;
+
+    if (!h_src->list)
+        return;
+
+    if (!h_dst) {
+        while (h_src->list)
+            ta_header_set_parent(h_src->list, NULL);
+        return;
+    }
+
+    if (!h_dst->list) {
+        h_dst->list = h_src->list;
+        h_dst->list->prev = h_dst;
+        h_src->list = NULL;
+        return;
+    }
+
+    struct ta_header *h = h_dst->list;
+    while (h->next)
+        h = h->next;
+
+    h->next = h_src->list;
+    h->next->prev = h;
+    h_src->list = NULL;
+}
+
 ta_destructor ta_set_destructor(void *restrict ptr, ta_destructor destructor)
 {
     struct ta_header *h = ta_header_from_ptr(ptr);
@@ -534,33 +594,8 @@ void *ta_set_parent(void *restrict ptr, void *restrict tactx)
 {
     struct ta_header *h = ta_header_from_ptr(ptr);
     struct ta_header *h_parent = tactx ? ta_header_from_ptr(tactx) : NULL;
-
-    if (h->prev) {
-        if (h->prev->list == h) {
-            if (h->prev == h_parent)
-                return TA_PTR_FROM_HDR(h);
-            h->prev->list = h->next;
-        } else {
-            h->prev->next = h->next;
-        }
-        if (h->next)
-            h->next->prev = h->prev;
-    }
-
-    if (h_parent) {
-        if (h_parent->list) {
-            h->next = h_parent->list;
-            h->next->prev = h;
-        } else {
-            h->next = NULL;
-        }
-        h->prev = h_parent;
-        h->prev->list = h;
-    } else {
-        h->prev = h->next = NULL;
-    }
-
-    return TA_PTR_FROM_HDR(h);
+    ta_header_set_parent(h, h_parent);
+    return ptr;
 }
 
 void *ta_get_parent(void *ptr)
