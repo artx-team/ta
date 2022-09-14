@@ -146,9 +146,6 @@ void *ta_xmemdup(const void *mem, size_t n);
 // Wrapper around `ta_free()` which sets the pointer to NULL.
 #define TA_FREE(ptr) do { if (__ta_likely(ptr)) { ta_free(ptr); (ptr) = NULL; } } while (0)
 
-// Wrapper around RAII macro which calls `ta_free()` on cleanup.
-#define TA_RAII(type, name, init) RAII(type *, name, ta_free, init)
-
 // Prototype of destructor which is called when TA chunk is freed.
 typedef void (*ta_destructor)(void *);
 
