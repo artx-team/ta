@@ -306,13 +306,13 @@ size_t ta_get_size(void *ptr);
          (ptr) = (tmp))
 
 // Reverse traversal of all children of a TA chunk starting from `ptr`.
-#define TB_FOREACH_REVERSE_FROM(ptr, tactx) \
+#define TA_FOREACH_REVERSE_FROM(ptr, tactx) \
     for (; \
          (ptr); \
          (ptr) = ta_get_prev(ptr))
 
 // Reverse traversal of all children of a TA chunk (safe version) starting from `ptr`.
-#define TB_FOREACH_REVERSE_FROM_SAFE(ptr, tactx, tmp) \
+#define TA_FOREACH_REVERSE_FROM_SAFE(ptr, tactx, tmp) \
     for (; \
          (ptr) && ((tmp) = ta_get_prev(ptr), 1); \
          (ptr) = (tmp))
