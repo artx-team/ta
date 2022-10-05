@@ -142,7 +142,7 @@ char *ta_header_append(struct ta_header *restrict h, size_t at,
     if (__ta_unlikely(h->size < at))
         abort();
 
-    if (__ta_unlikely(len >= TA_MAX_SIZE - 1 || at >= TA_MAX_SIZE - len - 1))
+    if (__ta_unlikely(len >= TA_MAX_SIZE || at >= TA_MAX_SIZE - len))
         abort();
 
     char *str = h->size <= at + len
@@ -172,7 +172,7 @@ char *ta_header_printf(struct ta_header *restrict h, size_t at,
     if (__ta_unlikely(len < 0))
         abort();
 
-    if (__ta_unlikely((size_t)len >= TA_MAX_SIZE - 1 || at >= TA_MAX_SIZE - (size_t)len - 1))
+    if (__ta_unlikely((size_t)len >= TA_MAX_SIZE || at >= TA_MAX_SIZE - (size_t)len))
         abort();
 
     char *str = h->size <= at + (size_t)len
@@ -408,16 +408,16 @@ char *ta_strdup(void *restrict tactx, const char *restrict str)
     if (__ta_unlikely(!str))
         abort();
 
-    size_t size = strlen(str) + 1;
-    if (__ta_unlikely(size > TA_MAX_SIZE))
+    size_t n = strlen(str);
+    if (__ta_unlikely(n >= TA_MAX_SIZE))
         abort();
 
-    struct ta_header *h = malloc(TA_HDR_SIZE + size);
+    struct ta_header *h = malloc(TA_HDR_SIZE + n + 1);
     if (__ta_unlikely(!h))
         abort();
 
-    memcpy(TA_PTR_FROM_HDR(h), str, size);
-    return ta_header_init(h, size, tactx);
+    memcpy(TA_PTR_FROM_HDR(h), str, n + 1);
+    return ta_header_init(h, n + 1, tactx);
 }
 
 char *ta_strdup_append(char *restrict str, const char *restrict append)
