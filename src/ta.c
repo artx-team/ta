@@ -219,9 +219,11 @@ void *ta_xmalloc(size_t size)
 {
     if (__ta_unlikely(!size))
         size = 1;
+
     void *ptr = malloc(size);
     if (__ta_unlikely(!ptr))
         abort();
+
     return ptr;
 }
 
@@ -229,9 +231,11 @@ void *ta_xcalloc(size_t n, size_t size)
 {
     if (__ta_unlikely(!n || !size))
         n = size = 1;
+
     void *ptr = calloc(n, size);
     if (__ta_unlikely(!ptr))
         abort();
+
     return ptr;
 }
 
@@ -239,9 +243,11 @@ void *ta_xrealloc(void *ptr, size_t size)
 {
     if (__ta_unlikely(!size))
         size = 1;
+
     ptr = ptr ? realloc(ptr, size) : malloc(size);
     if (__ta_unlikely(!ptr))
         abort();
+
     return ptr;
 }
 
@@ -249,9 +255,11 @@ void *ta_xzalloc(size_t size)
 {
     if (__ta_unlikely(!size))
         size = 1;
+
     void *ptr = calloc(1, size);
     if (__ta_unlikely(!ptr))
         abort();
+
     return ptr;
 }
 
@@ -259,9 +267,11 @@ char *ta_xstrdup(const char *str)
 {
     if (__ta_unlikely(!str))
         abort();
+
     char *ptr = strdup(str);
     if (__ta_unlikely(!ptr))
         abort();
+
     return ptr;
 }
 
@@ -269,9 +279,11 @@ char *ta_xstrndup(const char *str, size_t n)
 {
     if (__ta_unlikely(!str))
         abort();
+
     char *ptr = strndup(str, n);
     if (__ta_unlikely(!ptr))
         abort();
+
     return ptr;
 }
 
@@ -279,15 +291,18 @@ void *ta_xmemdup(const void *mem, size_t n)
 {
     if (__ta_unlikely(!mem))
         abort();
+
     if (__ta_unlikely(!n)) {
         void *ptr = malloc(1);
         if (__ta_unlikely(!ptr))
             abort();
         return ptr;
     }
+
     void *ptr = malloc(n);
     if (__ta_unlikely(!ptr))
         abort();
+
     return memcpy(ptr, mem, n);
 }
 
