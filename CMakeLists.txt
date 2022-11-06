@@ -136,7 +136,7 @@ if(ENABLE_ANALYZER AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
 endif()
 
 if(ENABLE_COVERAGE)
-    list(APPEND CHECK_C_FLAGS --coverage)
+    list(PREPEND GLOBAL_C_FLAGS --coverage)
 endif()
 
 include(CheckCCompilerFlag)
