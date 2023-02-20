@@ -1,6 +1,6 @@
 # TA memory allocator
 
-[![Build](https://img.shields.io/github/workflow/status/pavelxdd/ta/cmake?style=flat)](https://github.com/pavelxdd/ta/actions)
+[![Build](https://img.shields.io/github/actions/workflow/status/pavelxdd/ta/cmake.yml?branch=master&style=flat)](https://github.com/pavelxdd/ta/actions)
 [![Codecov](https://img.shields.io/codecov/c/gh/pavelxdd/ta?style=flat)](https://codecov.io/gh/pavelxdd/ta)
 [![License](https://img.shields.io/github/license/pavelxdd/ta?style=flat&color=blue)](https://github.com/pavelxdd/ta/blob/master/UNLICENSE)
 
