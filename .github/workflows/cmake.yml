@@ -31,13 +31,13 @@ jobs:
       run: sudo apt-get update && sudo apt-get install libcunit1-dev
 
     - name: CMake
-      run: CC=${{ matrix.cc }} cmake . -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTS=ON
+      run: CC=${{ matrix.cc }} cmake . -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTING=ON
 
     - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }}
+      run: cmake --build build --target ta
 
     - name: Test
-      run: cd build && ctest -C ${{ matrix.build_type }} --output-on-failure
+      run: cmake --build build --target check
 
   alpine:
     runs-on: ubuntu-22.04
@@ -63,13 +63,13 @@ jobs:
       run: apk --no-cache add build-base cmake cunit-dev ${{ matrix.cc }}
 
     - name: CMake
-      run: CC=${{ matrix.cc }} cmake . -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTS=ON
+      run: CC=${{ matrix.cc }} cmake . -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTING=ON
 
     - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }}
+      run: cmake --build build --target ta
 
     - name: Test
-      run: cd build && ctest -C ${{ matrix.build_type }} --output-on-failure
+      run: cmake --build build --target check
 
   macos:
     runs-on: ${{ matrix.os }}
@@ -92,13 +92,13 @@ jobs:
       run: brew install cunit
 
     - name: CMake
-      run: CC=${{ matrix.cc }} cmake . -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTS=ON
+      run: CC=${{ matrix.cc }} cmake . -Bbuild -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTING=ON
 
     - name: Build
-      run: cmake --build build --config ${{ matrix.build_type }}
+      run: cmake --build build --target ta
 
     - name: Test
-      run: cd build && ctest -C ${{ matrix.build_type }} --output-on-failure
+      run: cmake --build build --target check
 
   valgrind:
     runs-on: ubuntu-22.04
@@ -110,13 +110,13 @@ jobs:
       run: sudo apt-get update && sudo apt-get install libcunit1-dev valgrind
 
     - name: CMake
-      run: cmake . -Bbuild -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTS=ON -DENABLE_VALGRIND=ON
+      run: cmake . -Bbuild -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTING=ON -DENABLE_VALGRIND=ON
 
     - name: Build
-      run: cmake --build build --config FullDebug
+      run: cmake --build build --target ta
 
     - name: Test
-      run: cd build && ctest -C FullDebug --output-on-failure
+      run: cmake --build build --target check
 
   analyzer:
     runs-on: ubuntu-22.04
@@ -128,13 +128,13 @@ jobs:
       run: sudo apt-get update && sudo apt-get install libcunit1-dev
 
     - name: CMake
-      run: cmake . -Bbuild -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTS=ON -DENABLE_ANALYZER=ON
+      run: cmake . -Bbuild -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTING=ON -DENABLE_ANALYZER=ON
 
     - name: Build
-      run: cmake --build build --config FullDebug
+      run: cmake --build build --target ta
 
     - name: Test
-      run: cd build && ctest -C FullDebug --output-on-failure
+      run: cmake --build build --target check
 
   coverage:
     runs-on: ubuntu-22.04
@@ -147,7 +147,7 @@ jobs:
 
     - name: CodeCov
       run: |
-        cmake . -Bbuild -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON
-        cmake --build build --config FullDebug
-        cd build && ctest -C FullDebug --output-on-failure
+        cmake . -Bbuild -DCMAKE_BUILD_TYPE=FullDebug -DBUILD_TESTING=ON -DENABLE_COVERAGE=ON
+        cmake --build build --target ta
+        cmake --build build --target check
         bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
