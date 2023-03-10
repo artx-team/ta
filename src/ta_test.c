@@ -92,25 +92,25 @@ static void test_ta_xstrndup(void)
 static void test_ta_xmemdup(void)
 {
     {
-        char *str = ta_xmemdup("", 0);
+        char *str = (char *)ta_xmemdup("", 0);
         CU_ASSERT_PTR_NOT_NULL(str);
         CU_ASSERT_NSTRING_EQUAL(str, "", 0);
         free(str);
     }
     {
-        char *str = ta_xmemdup("test", 0);
+        char *str = (char *)ta_xmemdup("test", 0);
         CU_ASSERT_PTR_NOT_NULL(str);
         CU_ASSERT_NSTRING_EQUAL(str, "test", 0);
         free(str);
     }
     {
-        char *str = ta_xmemdup("test", 2);
+        char *str = (char *)ta_xmemdup("test", 2);
         CU_ASSERT_PTR_NOT_NULL(str);
         CU_ASSERT_NSTRING_EQUAL(str, "test", 2);
         free(str);
     }
     {
-        char *str = ta_xmemdup("test", 5);
+        char *str = (char *)ta_xmemdup("test", 5);
         CU_ASSERT_PTR_NOT_NULL(str);
         CU_ASSERT_STRING_EQUAL(str, "test");
         free(str);
@@ -579,42 +579,42 @@ static void test_ta_alloc_array(void)
     CU_ASSERT_PTR_NOT_NULL(tactx);
     CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
     {
-        int *ptr = ta_alloc_array(tactx, sizeof(*ptr), 10);
+        int *ptr = (int *)ta_alloc_array(tactx, sizeof(*ptr), 10);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 10);
         ta_free(ptr);
     }
     {
-        int *ptr = ta_alloc_array(tactx, sizeof(*ptr), 5);
+        int *ptr = (int *)ta_alloc_array(tactx, sizeof(*ptr), 5);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 5);
         ta_free(ptr);
     }
     {
-        int *ptr = ta_alloc_array(NULL, sizeof(*ptr), 1);
+        int *ptr = (int *)ta_alloc_array(NULL, sizeof(*ptr), 1);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 1);
         ta_free(ptr);
     }
     {
-        int *ptr = ta_alloc_array(tactx, sizeof(*ptr), 0);
+        int *ptr = (int *)ta_alloc_array(tactx, sizeof(*ptr), 0);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     {
-        int *ptr = ta_alloc_array(NULL, sizeof(*ptr), 0);
+        int *ptr = (int *)ta_alloc_array(NULL, sizeof(*ptr), 0);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
         CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     {
-        int *ptr = ta_alloc_array(tactx, sizeof(*ptr), 25);
+        int *ptr = (int *)ta_alloc_array(tactx, sizeof(*ptr), 25);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 25);
@@ -629,7 +629,7 @@ static void test_ta_zalloc_array(void)
     CU_ASSERT_PTR_NOT_NULL(tactx);
     CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
     {
-        int *ptr = ta_zalloc_array(tactx, sizeof(*ptr), 10);
+        int *ptr = (int *)ta_zalloc_array(tactx, sizeof(*ptr), 10);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 10);
@@ -638,7 +638,7 @@ static void test_ta_zalloc_array(void)
         ta_free(ptr);
     }
     {
-        int *ptr = ta_zalloc_array(tactx, sizeof(*ptr), 5);
+        int *ptr = (int *)ta_zalloc_array(tactx, sizeof(*ptr), 5);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 5);
@@ -647,7 +647,7 @@ static void test_ta_zalloc_array(void)
         ta_free(ptr);
     }
     {
-        int *ptr = ta_zalloc_array(NULL, sizeof(*ptr), 1);
+        int *ptr = (int *)ta_zalloc_array(NULL, sizeof(*ptr), 1);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 1);
@@ -655,21 +655,21 @@ static void test_ta_zalloc_array(void)
         ta_free(ptr);
     }
     {
-        int *ptr = ta_zalloc_array(tactx, sizeof(*ptr), 0);
+        int *ptr = (int *)ta_zalloc_array(tactx, sizeof(*ptr), 0);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     {
-        int *ptr = ta_zalloc_array(NULL, sizeof(*ptr), 0);
+        int *ptr = (int *)ta_zalloc_array(NULL, sizeof(*ptr), 0);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
         CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     {
-        int *ptr = ta_zalloc_array(tactx, sizeof(*ptr), 25);
+        int *ptr = (int *)ta_zalloc_array(tactx, sizeof(*ptr), 25);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 25);
@@ -688,37 +688,37 @@ static void test_ta_realloc_array(void)
 
     int *ptr = NULL;
 
-    ptr = ta_realloc_array(tactx, ptr, sizeof(*ptr), 10);
+    ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 10);
     CU_ASSERT_PTR_NOT_NULL(ptr);
     CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
     CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 10);
 
-    ptr = ta_realloc_array(tactx, ptr, sizeof(*ptr), 5);
+    ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 5);
     CU_ASSERT_PTR_NOT_NULL(ptr);
     CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
     CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 5);
 
-    ptr = ta_realloc_array(NULL, ptr, sizeof(*ptr), 5);
+    ptr = (int *)ta_realloc_array(NULL, ptr, sizeof(*ptr), 5);
     CU_ASSERT_PTR_NOT_NULL(ptr);
     CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
     CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 5);
 
-    ptr = ta_realloc_array(tactx, ptr, sizeof(*ptr), 1);
+    ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 1);
     CU_ASSERT_PTR_NOT_NULL(ptr);
     CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
     CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 1);
 
-    ptr = ta_realloc_array(tactx, ptr, sizeof(*ptr), 0);
+    ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 0);
     CU_ASSERT_PTR_NOT_NULL(ptr);
     CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
     CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
 
-    ptr = ta_realloc_array(NULL, ptr, sizeof(*ptr), 0);
+    ptr = (int *)ta_realloc_array(NULL, ptr, sizeof(*ptr), 0);
     CU_ASSERT_PTR_NOT_NULL(ptr);
     CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
     CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
 
-    ptr = ta_realloc_array(tactx, ptr, sizeof(*ptr), 25);
+    ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 25);
     CU_ASSERT_PTR_NOT_NULL(ptr);
     CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
     CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 25);
@@ -765,7 +765,7 @@ static void test_ta_memdup(void)
 
     const char str[] = "hello, world";
     {
-        char *ptr = ta_memdup(tactx, str, sizeof(str));
+        char *ptr = (char *)ta_memdup(tactx, str, sizeof(str));
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
         CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(str));
@@ -773,7 +773,7 @@ static void test_ta_memdup(void)
         ta_free(ptr);
     }
     {
-        char *ptr = ta_memdup(NULL, str, 0);
+        char *ptr = (char *)ta_memdup(NULL, str, 0);
         CU_ASSERT_PTR_NOT_NULL(ptr);
         CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
         CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
@@ -881,7 +881,7 @@ static void test_ta_strdup_append_buffer(void)
         ta_free(str);
     }
     {
-        char *str = ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
+        char *str = (char *)ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
         CU_ASSERT_PTR_NOT_NULL(str);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
         CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world"));
@@ -1010,7 +1010,7 @@ static void test_ta_strndup_append_buffer(void)
         ta_free(str);
     }
     {
-        char *str = ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
+        char *str = (char *)ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
         CU_ASSERT_PTR_NOT_NULL(str);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
         CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world"));
@@ -1139,7 +1139,7 @@ static void test_ta_asprintf_append_buffer(void)
         ta_free(str);
     }
     {
-        char *str = ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
+        char *str = (char *)ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
         CU_ASSERT_PTR_NOT_NULL(str);
         CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
         CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world"));
@@ -1174,7 +1174,7 @@ static void ctx_destructor(void *ptr)
 static void test_ta_destructor(void)
 {
     int a = 1;
-    struct ctx *ctx = ta_alloc(NULL, sizeof(struct ctx));
+    struct ctx *ctx = (struct ctx *)ta_alloc(NULL, sizeof(struct ctx));
     CU_ASSERT_PTR_NULL(ta_get_destructor(ctx));
     ctx->a = &a;
     ta_set_destructor(ctx, ctx_destructor);

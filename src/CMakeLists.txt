@@ -107,6 +107,7 @@ set(CHECK_C_FLAGS
     -Wshadow
     -Wvla
     -Walloca
+    -Wc++-compat
     -Wformat=2
     -Wformat-overflow=2
     -Wformat-truncation=2

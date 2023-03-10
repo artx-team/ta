@@ -112,7 +112,7 @@ void *ta_header_realloc(struct ta_header *h, size_t size)
 {
     struct ta_header *h_old = h;
 
-    h = realloc(h, TA_HDR_SIZE + size);
+    h = (struct ta_header *)realloc(h, TA_HDR_SIZE + size);
     if (__ta_unlikely(!h))
         abort();
 
@@ -146,8 +146,8 @@ char *ta_header_append(struct ta_header *restrict h, size_t at,
         abort();
 
     char *str = h->size <= at + len
-                ? ta_header_realloc(h, at + len + 1)
-                : TA_PTR_FROM_HDR(h);
+                ? (char *)ta_header_realloc(h, at + len + 1)
+                : (char *)TA_PTR_FROM_HDR(h);
 
     if (__ta_likely(len))
         memcpy(str + at, append, len);
@@ -176,8 +176,8 @@ char *ta_header_printf(struct ta_header *restrict h, size_t at,
         abort();
 
     char *str = h->size <= at + (size_t)len
-                ? ta_header_realloc(h, at + (size_t)len + 1)
-                : TA_PTR_FROM_HDR(h);
+                ? (char *)ta_header_realloc(h, at + (size_t)len + 1)
+                : (char *)TA_PTR_FROM_HDR(h);
 
     if (__ta_unlikely(vsnprintf(str + at, (size_t)len + 1, format, ap) != len))
         abort();
@@ -311,7 +311,7 @@ void *ta_alloc(void *tactx, size_t size)
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
 
-    struct ta_header *h = malloc(TA_HDR_SIZE + size);
+    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + size);
     if (__ta_unlikely(!h))
         abort();
 
@@ -323,7 +323,7 @@ void *ta_zalloc(void *tactx, size_t size)
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
 
-    struct ta_header *h = calloc(1, TA_HDR_SIZE + size);
+    struct ta_header *h = (struct ta_header *)calloc(1, TA_HDR_SIZE + size);
     if (__ta_unlikely(!h))
         abort();
 
@@ -375,7 +375,7 @@ void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size)
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
 
-    struct ta_header *h = realloc(ptr, TA_HDR_SIZE + size);
+    struct ta_header *h = (struct ta_header *)realloc(ptr, TA_HDR_SIZE + size);
     if (__ta_unlikely(!h))
         abort();
 
@@ -393,7 +393,7 @@ void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size)
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
 
-    struct ta_header *h = malloc(TA_HDR_SIZE + size);
+    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + size);
     if (__ta_unlikely(!h))
         abort();
 
@@ -412,12 +412,12 @@ char *ta_strdup(void *restrict tactx, const char *restrict str)
     if (__ta_unlikely(n >= TA_MAX_SIZE))
         abort();
 
-    struct ta_header *h = malloc(TA_HDR_SIZE + n + 1);
+    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + n + 1);
     if (__ta_unlikely(!h))
         abort();
 
     memcpy(TA_PTR_FROM_HDR(h), str, n + 1);
-    return ta_header_init(h, n + 1, tactx);
+    return (char *)ta_header_init(h, n + 1, tactx);
 }
 
 char *ta_strdup_append(char *restrict str, const char *restrict append)
@@ -426,7 +426,7 @@ char *ta_strdup_append(char *restrict str, const char *restrict append)
         abort();
 
     struct ta_header *h = ta_header_from_ptr(str);
-    return ta_header_append(h, strnlen(str, h->size), append, strlen(append));
+    return (char *)ta_header_append(h, strnlen(str, h->size), append, strlen(append));
 }
 
 char *ta_strdup_append_buffer(char *restrict str, const char *restrict append)
@@ -435,7 +435,7 @@ char *ta_strdup_append_buffer(char *restrict str, const char *restrict append)
         abort();
 
     struct ta_header *h = ta_header_from_ptr(str);
-    return ta_header_append(h, h->size ? h->size - 1 : 0, append, strlen(append));
+    return (char *)ta_header_append(h, h->size ? h->size - 1 : 0, append, strlen(append));
 }
 
 char *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
@@ -447,16 +447,16 @@ char *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
     if (__ta_unlikely(n >= TA_MAX_SIZE))
         abort();
 
-    struct ta_header *h = malloc(TA_HDR_SIZE + n + 1);
+    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + n + 1);
     if (__ta_unlikely(!h))
         abort();
 
-    char *ptr = TA_PTR_FROM_HDR(h);
+    char *ptr = (char *)TA_PTR_FROM_HDR(h);
     if (__ta_likely(n))
         memcpy(ptr, str, n);
 
     ptr[n] = '\0';
-    return ta_header_init(h, n + 1, tactx);
+    return (char *)ta_header_init(h, n + 1, tactx);
 }
 
 char *ta_strndup_append(char *restrict str, const char *restrict append, size_t n)
@@ -465,7 +465,7 @@ char *ta_strndup_append(char *restrict str, const char *restrict append, size_t 
         abort();
 
     struct ta_header *h = ta_header_from_ptr(str);
-    return ta_header_append(h, strnlen(str, h->size), append, strnlen(append, n));
+    return (char *)ta_header_append(h, strnlen(str, h->size), append, strnlen(append, n));
 }
 
 char *ta_strndup_append_buffer(char *restrict str, const char *restrict append, size_t n)
@@ -474,7 +474,7 @@ char *ta_strndup_append_buffer(char *restrict str, const char *restrict append, 
         abort();
 
     struct ta_header *h = ta_header_from_ptr(str);
-    return ta_header_append(h, h->size ? h->size - 1 : 0, append, strnlen(append, n));
+    return (char *)ta_header_append(h, h->size ? h->size - 1 : 0, append, strnlen(append, n));
 }
 
 char *ta_asprintf(void *restrict tactx, const char *restrict format, ...)
@@ -518,14 +518,15 @@ char *ta_vasprintf(void *restrict tactx, const char *restrict format, va_list ap
     if (__ta_unlikely(len < 0 || (size_t)len >= TA_MAX_SIZE))
         abort();
 
-    struct ta_header *h = malloc(TA_HDR_SIZE + (size_t)len + 1);
+    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + (size_t)len + 1);
     if (__ta_unlikely(!h))
         abort();
 
-    if (__ta_unlikely(vsnprintf(TA_PTR_FROM_HDR(h), (size_t)len + 1, format, ap) != len))
+    char *ptr = (char *)TA_PTR_FROM_HDR(h);
+    if (__ta_unlikely(vsnprintf(ptr, (size_t)len + 1, format, ap) != len))
         abort();
 
-    return ta_header_init(h, (size_t)len + 1, tactx);
+    return (char *)ta_header_init(h, (size_t)len + 1, tactx);
 }
 
 char *ta_vasprintf_append(char *restrict str, const char *restrict format, va_list ap)
