@@ -1,0 +1,172 @@
+name: meson
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  linux:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-20.04
+          - ubuntu-22.04
+        buildtype:
+          - plain
+          - debug
+          - debugoptimized
+          - release
+          - minsize
+        cc:
+          - gcc
+          - clang
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+    - uses: actions/checkout@main
+    - run: sudo apt-get update
+    - run: sudo apt-get install -yqq --no-install-recommends meson ninja-build
+    - run: meson setup build -Dbuildtype=${{ matrix.buildtype }} -Dtests=true
+    - run: ninja -Cbuild -v
+    - run: ninja -Cbuild -v test
+
+  alpine:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - alpine:edge
+          - alpine:latest
+        buildtype:
+          - plain
+          - debug
+          - debugoptimized
+          - release
+          - minsize
+        cc:
+          - gcc
+          - clang
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+    - uses: actions/checkout@main
+    - run: apk --no-cache add build-base meson ${{ matrix.cc }}
+    - run: meson setup build -Dbuildtype=${{ matrix.buildtype }} -Dtests=true
+    - run: meson compile -Cbuild -v
+    - run: meson test -Cbuild -v
+
+  macos:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-11
+          - macos-12
+          - macos-13
+        buildtype:
+          - plain
+          - debug
+          - debugoptimized
+          - release
+          - minsize
+        cc:
+          - clang
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+    - uses: actions/checkout@main
+    - run: brew install meson
+    - run: meson setup build -Dbuildtype=${{ matrix.buildtype }} -Dtests=true
+    - run: meson compile -Cbuild -v
+    - run: meson test -Cbuild -v
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        buildtype:
+          - plain
+          - debug
+          - debugoptimized
+          - release
+          - minsize
+    steps:
+    - uses: actions/checkout@main
+    - uses: actions/setup-python@v4
+    - run: pip install meson ninja
+    - run: meson setup build -Dbuildtype=${{ matrix.buildtype }}
+    - run: meson compile -Cbuild -v
+    - run: meson test -Cbuild -v
+
+  muon:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:edge
+    strategy:
+      fail-fast: false
+      matrix:
+        buildtype:
+          - plain
+          - debug
+          - debugoptimized
+          - release
+          - minsize
+        cc:
+          - tcc
+          - pcc
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+    - uses: actions/checkout@main
+    - run: echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories
+    - run: apk --no-cache add build-base muon ${{ matrix.cc }} valgrind samurai
+    - run: muon setup -Dbuildtype=${{ matrix.buildtype }} -Dtests=true -Dvalgrind=true build
+    - run: samu -Cbuild -v
+    - run: cd build && muon test -vv
+
+  valgrind:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@main
+    - run: sudo apt-get update
+    - run: sudo apt-get install -yqq --no-install-recommends meson valgrind
+    - run: meson setup build -Dbuildtype=debug -Dtests=true -Dvalgrind=true
+    - run: meson compile -Cbuild -v
+    - run: meson test -Cbuild -v
+
+  analyzer:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@main
+    - run: sudo apt-get update
+    - run: sudo apt-get install -yqq --no-install-recommends meson
+    - run: meson setup build -Dbuildtype=debug -Dtests=true -Danalyzer=true
+    - run: meson compile -Cbuild -v
+    - run: meson test -Cbuild -v
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@main
+    - run: sudo apt-get update
+    - run: sudo apt-get install -yqq --no-install-recommends meson gcovr
+    - run: meson setup build -Dbuildtype=debug -Dtests=true -Db_coverage=true
+    - run: meson compile -Cbuild -v
+    - run: meson test -Cbuild -v
+    - run: ninja -Cbuild -v coverage
+    - uses: codecov/codecov-action@v3
+      with:
+        directory: build
+        fail_ci_if_error: true
+        verbose: true

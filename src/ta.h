@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 #ifndef __ta_likely
-#   if defined(__GNUC__) || __ta_has_builtin(__builtin_expect)
+#   if __ta_has_builtin(__builtin_expect)
 #       define __ta_likely(x) (__builtin_expect(!!(x), 1))
 #   else
 #       define __ta_likely(x) (x)
@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
 #ifndef __ta_unlikely
-#   if defined(__GNUC__) || __ta_has_builtin(__builtin_expect)
+#   if __ta_has_builtin(__builtin_expect)
 #       define __ta_unlikely(x) (__builtin_expect(!!(x), 0))
 #   else
 #       define __ta_unlikely(x) (x)
@@ -50,7 +50,7 @@ extern "C" {
 #endif
 
 #ifndef __ta_public
-#   if defined(__GNUC__) || __ta_has_attribute(__visibility__)
+#   if __ta_has_attribute(__visibility__)
 #       define __ta_public __attribute__((__visibility__("default")))
 #   else
 #       define __ta_public
@@ -58,7 +58,7 @@ extern "C" {
 #endif
 
 #ifndef __ta_nodiscard
-#   if defined(__GNUC__) || __ta_has_attribute(__warn_unused_result__)
+#   if __ta_has_attribute(__warn_unused_result__)
 #       define __ta_nodiscard __attribute__((__warn_unused_result__))
 #   else
 #       define __ta_nodiscard
@@ -66,7 +66,7 @@ extern "C" {
 #endif
 
 #ifndef __ta_nonnull
-#   if defined(__GNUC__) || __ta_has_attribute(__returns_nonnull__)
+#   if __ta_has_attribute(__returns_nonnull__)
 #       define __ta_nonnull __attribute__((__returns_nonnull__))
 #   else
 #       define __ta_nonnull
@@ -74,7 +74,7 @@ extern "C" {
 #endif
 
 #ifndef __ta_printf
-#   if defined(__GNUC__) || __ta_has_attribute(__format__)
+#   if __ta_has_attribute(__format__)
 #       define __ta_printf(x, y) __attribute__((__format__(__printf__, x, y)))
 #   else
 #       define __ta_printf(x, y)
@@ -82,15 +82,23 @@ extern "C" {
 #endif
 
 #ifndef __ta_malloc
-#   if defined(__GNUC__) || __ta_has_attribute(__malloc__)
+#   if __ta_has_attribute(__malloc__)
 #       define __ta_malloc __attribute__((__malloc__))
 #   else
 #       define __ta_malloc
 #   endif
 #endif
 
+#ifndef __ta_alloc_align
+#   if __ta_has_attribute(__alloc_align__)
+#       define __ta_alloc_align(...) __attribute__((__alloc_align__(__VA_ARGS__)))
+#   else
+#       define __ta_alloc_align(...)
+#   endif
+#endif
+
 #ifndef __ta_alloc_size
-#   if defined(__GNUC__) || __ta_has_attribute(__alloc_size__)
+#   if __ta_has_attribute(__alloc_size__)
 #       define __ta_alloc_size(...) __attribute__((__alloc_size__(__VA_ARGS__)))
 #   else
 #       define __ta_alloc_size(...)
@@ -98,7 +106,7 @@ extern "C" {
 #endif
 
 #ifndef __ta_dealloc_free
-#   if defined(__GNUC__) && __GNUC__ >= 11
+#   if defined(__GNUC__) && __GNUC__ >= 11 && __ta_has_attribute(__malloc__)
 #       define __ta_dealloc_free __attribute__((__malloc__(__builtin_free, 1)))
 #   else
 #       define __ta_dealloc_free
@@ -125,6 +133,13 @@ __ta_public __ta_nodiscard __ta_nonnull
 __ta_malloc __ta_alloc_size(1) __ta_dealloc_free
 void *ta_xzalloc(size_t size);
 
+#ifndef _WIN32
+// Wrapper around standard `posix_memalign()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_alloc_align(1) __ta_alloc_size(2) __ta_dealloc_free
+void *ta_xmemalign(size_t alignment, size_t n);
+#endif
+
 // Wrapper around standard `strdup()` which aborts on errors.
 __ta_public __ta_nodiscard __ta_nonnull
 __ta_malloc __ta_dealloc_free
@@ -139,6 +154,16 @@ char *ta_xstrndup(const char *str, size_t n);
 __ta_public __ta_nodiscard __ta_nonnull
 __ta_malloc __ta_dealloc_free
 void *ta_xmemdup(const void *mem, size_t n);
+
+// Wrapper around `asprintf()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_dealloc_free __ta_printf(1, 2)
+char *ta_xasprintf(const char *format, ...);
+
+// Wrapper around `vasprintf()` which aborts on errors.
+__ta_public __ta_nodiscard __ta_nonnull
+__ta_malloc __ta_dealloc_free __ta_printf(1, 0)
+char *ta_xvasprintf(const char *format, va_list ap);
 
 // Wrapper around standard `free()` which sets the pointer to NULL.
 #define ta_xfree(ptr) do { if (__ta_likely(ptr)) { free(ptr); (ptr) = NULL; } } while (0)

@@ -1,379 +1,476 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-
-#include <CUnit/Basic.h>
+#include <string.h>
 
 #include "ta.h"
 
-static void test_ta_xmalloc(void)
+#define TEST(func) static void func(const char *__unit)
+
+// GCOVR_EXCL_START
+static void assert_expr(const char *unit, bool result,
+                        const char *const expression,
+                        const char *const file, const int line)
+{
+    if (__ta_likely(result))
+        return;
+
+    fprintf(stderr, "%s:%d: unit test '%s' assertion failed: (%s)\n",
+            file, line, unit, expression);
+    fflush(stderr);
+    abort();
+}
+// GCOVR_EXCL_STOP
+
+#define assert_true(x) assert_expr(__unit, !!(x), #x, __FILE__, __LINE__)
+#define assert_false(x) assert_true(!(x))
+
+#define assert_null(x) assert_true((x) == NULL)
+#define assert_not_null(x) assert_true((x) != NULL)
+
+#define assert_equal(a, b) assert_true((a) == (b))
+#define assert_not_equal(a, b) assert_true((a) != (b))
+
+#define assert_str_equal(a, b) assert_true(strcmp(a, b) == 0)
+#define assert_str_not_equal(a, b) assert_true(strcmp(a, b) != 0)
+
+#define assert_strn_equal(a, b, n) assert_true(strncmp(a, b, n) == 0)
+#define assert_strn_not_equal(a, b, n) assert_true(strncmp(a, b, n) != 0)
+
+#define assert_mem_equal(a, b, n) assert_true(memcmp(a, b, n) == 0)
+#define assert_mem_not_equal(a, b, n) assert_true(memcmp(a, b, n) != 0)
+
+TEST(test_ta_xmalloc)
 {
     for (size_t i = 0; i < 100; ++i) {
         void *ptr = ta_xmalloc(i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
+        assert_not_null(ptr);
         free(ptr);
     }
 }
 
-static void test_ta_xcalloc(void)
+TEST(test_ta_xcalloc)
 {
     for (size_t i = 0; i < 10; ++i) {
         for (size_t j = 0; j < 10; ++j) {
             void *ptr = ta_xcalloc(i, j);
-            CU_ASSERT_PTR_NOT_NULL(ptr);
+            assert_not_null(ptr);
             free(ptr);
         }
     }
 }
 
-static void test_ta_xrealloc(void)
+TEST(test_ta_xrealloc)
 {
     void *ptr = ta_xrealloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
+    assert_not_null(ptr);
     ptr = ta_xrealloc(ptr, 100);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
+    assert_not_null(ptr);
     ptr = ta_xrealloc(ptr, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
+    assert_not_null(ptr);
     free(ptr);
 }
 
-static void test_ta_xzalloc(void)
+TEST(test_ta_xzalloc)
 {
     for (size_t i = 0; i < 100; ++i) {
         void *ptr = ta_xzalloc(i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
+        assert_not_null(ptr);
         free(ptr);
     }
 }
 
-static void test_ta_xstrdup(void)
+#ifndef _WIN32
+TEST(test_ta_xmemalign)
+{
+    for (size_t i = 0; i < 100; ++i) {
+        void *ptr = ta_xmemalign(128, i);
+        assert_not_null(ptr);
+        assert_equal((uintptr_t)ptr % 128, 0);
+        free(ptr);
+    }
+}
+#endif
+
+TEST(test_ta_xstrdup)
 {
     {
         char *str = ta_xstrdup("");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_STRING_EQUAL(str, "");
+        assert_not_null(str);
+        assert_str_equal(str, "");
         free(str);
     }
     {
         char *str = ta_xstrdup("test");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_STRING_EQUAL(str, "test");
+        assert_not_null(str);
+        assert_str_equal(str, "test");
         free(str);
     }
 }
 
-static void test_ta_xstrndup(void)
+TEST(test_ta_xstrndup)
 {
     {
         char *str = ta_xstrndup("", 0);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_NSTRING_EQUAL(str, "", 0);
+        assert_not_null(str);
+        assert_strn_equal(str, "", 0);
         free(str);
     }
     {
         char *str = ta_xstrndup("test", 0);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_NSTRING_EQUAL(str, "test", 0);
+        assert_not_null(str);
+        assert_strn_equal(str, "test", 0);
         free(str);
     }
     {
         char *str = ta_xstrndup("test", 2);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_NSTRING_EQUAL(str, "test", 2);
+        assert_not_null(str);
+        assert_strn_equal(str, "test", 2);
         free(str);
     }
     {
         char *str = ta_xstrndup("test", 5);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_NSTRING_EQUAL(str, "test", 5);
+        assert_not_null(str);
+        assert_strn_equal(str, "test", 5);
         free(str);
     }
 }
 
-static void test_ta_xmemdup(void)
+TEST(test_ta_xmemdup)
 {
     {
         char *str = (char *)ta_xmemdup("", 0);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_NSTRING_EQUAL(str, "", 0);
+        assert_not_null(str);
+        assert_strn_equal(str, "", 0);
         free(str);
     }
     {
         char *str = (char *)ta_xmemdup("test", 0);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_NSTRING_EQUAL(str, "test", 0);
+        assert_not_null(str);
+        assert_strn_equal(str, "test", 0);
         free(str);
     }
     {
         char *str = (char *)ta_xmemdup("test", 2);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_NSTRING_EQUAL(str, "test", 2);
+        assert_not_null(str);
+        assert_strn_equal(str, "test", 2);
         free(str);
     }
     {
         char *str = (char *)ta_xmemdup("test", 5);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_STRING_EQUAL(str, "test");
+        assert_not_null(str);
+        assert_str_equal(str, "test");
         free(str);
     }
 }
 
-static void test_ta_get_parent(void)
+TEST(test_ta_xasprintf)
+{
+    const char str[] = "hello, world";
+    {
+        char *ptr = ta_xasprintf("%.*s", 5, str);
+        assert_not_null(ptr);
+        assert_equal(strlen(ptr), 5);
+        assert_strn_equal(ptr, str, 5);
+        free(ptr);
+    }
+    {
+        char *ptr = ta_xasprintf("%s", str);
+        assert_not_null(ptr);
+        assert_str_equal(ptr, str);
+        free(ptr);
+    }
+    {
+        char *ptr = ta_xasprintf("%s", "");
+        assert_not_null(ptr);
+        assert_equal(strlen(ptr), 0);
+        free(ptr);
+    }
+}
+
+TEST(test_ta_set_parent)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+
+    void *arr[10];
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = arr[i] = ta_alloc(tactx, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
+    }
+
+    ta_set_parent(arr[8], arr[9]);
+    ta_set_parent(arr[2], arr[1]);
+    ta_set_parent(arr[9], tactx);
+    ta_set_parent(arr[0], tactx);
+    ta_set_parent(arr[3], NULL);
+    ta_set_parent(arr[7], NULL);
+    ta_free(arr[3]);
+    ta_free(arr[7]);
+    ta_free(tactx);
+}
+
+TEST(test_ta_get_parent)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
 
     for (size_t i = 0; i < 5; ++i) {
         void *ptr = ta_get_parent(ta_alloc(tactx, i));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ptr, tactx);
+        assert_not_null(ptr);
+        assert_equal(ptr, tactx);
     }
 
     tactx = ta_realloc(NULL, tactx, 100);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NOT_NULL(ta_get_child(tactx));
+    assert_not_null(tactx);
+    assert_not_null(ta_get_child(tactx));
 
     ta_free_children(tactx);
     ta_free(tactx);
 }
 
-static void test_ta_get_size(void)
+TEST(test_ta_get_size)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
-    CU_ASSERT_EQUAL(ta_get_size(tactx), 0);
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    assert_equal(ta_get_size(tactx), 0);
 
     for (size_t i = 0; i < 5; ++i) {
         void *ptr = ta_alloc(tactx, i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
     }
 
     tactx = ta_realloc(NULL, tactx, 100);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NOT_NULL(ta_get_child(tactx));
+    assert_not_null(tactx);
+    assert_not_null(ta_get_child(tactx));
 
     ta_free_children(tactx);
     ta_free(tactx);
 }
 
-static void test_ta_get_child(void)
+TEST(test_ta_get_child)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
-    CU_ASSERT_PTR_NULL(ta_get_child(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    assert_null(ta_get_child(tactx));
 
     for (size_t i = 0; i < 5; ++i) {
         void *ptr = ta_alloc(tactx, i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_PTR_EQUAL(ta_get_child(tactx), ptr);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_child(tactx), ptr);
     }
 
     for (size_t i = 0; i < 3; ++i) {
         void *ptr = ta_get_child(tactx);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
         ta_free(ptr);
-        CU_ASSERT_PTR_NOT_EQUAL(ta_get_child(tactx), ptr);
+        assert_not_equal(ta_get_child(tactx), ptr);
     }
 
     {
         void *ptr = ta_get_child(tactx);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 1);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), 1);
         ta_set_parent(ptr, NULL);
         ta_free(ptr);
     }
 
     {
         void *ptr = ta_get_child(tactx);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), 0);
         ta_set_parent(ptr, NULL);
         ta_free(ptr);
     }
 
     {
         void *ptr = ta_get_child(tactx);
-        CU_ASSERT_PTR_NULL(ptr);
+        assert_null(ptr);
     }
 
     ta_free(tactx);
 }
 
-static void test_ta_get_next(void)
+TEST(test_ta_get_next)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
-    CU_ASSERT_PTR_NULL(ta_get_next(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    assert_null(ta_get_next(tactx));
 
     for (size_t i = 0; i < 5; ++i) {
         void *tmp = ta_get_child(tactx);
         void *ptr = ta_alloc(tactx, i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_PTR_EQUAL(ta_get_next(ptr), tmp);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_next(ptr), tmp);
     }
 
     for (size_t i = 0; i < 3; ++i) {
         void *tmp = ta_get_child(tactx);
-        CU_ASSERT_PTR_NOT_NULL(tmp);
+        assert_not_null(tmp);
         void *ptr = ta_get_next(tmp);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
         ta_free(tmp);
-        CU_ASSERT_PTR_EQUAL(ta_get_child(tactx), ptr);
+        assert_equal(ta_get_child(tactx), ptr);
     }
 
     {
         void *tmp = ta_get_child(tactx);
-        CU_ASSERT_PTR_NOT_NULL(tmp);
+        assert_not_null(tmp);
         void *ptr = ta_get_next(tmp);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(tmp), 1);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(tmp), 1);
+        assert_equal(ta_get_size(ptr), 0);
         ta_free(tmp);
     }
 
     {
         void *tmp = ta_get_child(tactx);
-        CU_ASSERT_PTR_NOT_NULL(tmp);
+        assert_not_null(tmp);
         void *ptr = ta_get_next(tmp);
-        CU_ASSERT_PTR_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(tmp), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(tmp), 0);
+        assert_null(ptr);
+        assert_equal(ta_get_parent(tmp), tactx);
+        assert_equal(ta_get_size(tmp), 0);
         ta_free(tmp);
     }
 
     ta_free(tactx);
 }
 
-static void test_ta_get_prev(void)
+TEST(test_ta_get_prev)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
-    CU_ASSERT_PTR_NULL(ta_get_prev(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    assert_null(ta_get_prev(tactx));
 
     for (size_t i = 0; i < 5; ++i) {
         void *tmp = ta_get_child(tactx);
         void *ptr = ta_alloc(tactx, i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_PTR_EQUAL(ta_get_prev(ptr), NULL);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_prev(ptr), NULL);
         if (tmp)
-            CU_ASSERT_PTR_EQUAL(ta_get_prev(tmp), ptr);
+            assert_equal(ta_get_prev(tmp), ptr);
     }
 
     for (size_t i = 0; i < 3; ++i) {
         void *ptr = ta_get_child(tactx);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_prev(ptr));
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_PTR_EQUAL(ta_get_prev(ta_get_next(ptr)), ptr);
+        assert_not_null(ptr);
+        assert_null(ta_get_prev(ptr));
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_prev(ta_get_next(ptr)), ptr);
         ta_free(ptr);
     }
 
     ta_free(tactx);
 }
 
-static void test_ta_has_parent(void)
+TEST(test_ta_has_parent)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
-    CU_ASSERT_FALSE(ta_has_parent(tactx, NULL));
-    CU_ASSERT_FALSE(ta_has_parent(tactx, tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    assert_false(ta_has_parent(tactx, NULL));
+    assert_false(ta_has_parent(tactx, tactx));
 
     void *ptr1 = ta_alloc(tactx, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr1);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr1), tactx);
-    CU_ASSERT_FALSE(ta_has_parent(ptr1, NULL));
-    CU_ASSERT_FALSE(ta_has_parent(ptr1, ptr1));
-    CU_ASSERT_TRUE(ta_has_parent(ptr1, tactx));
-    CU_ASSERT_FALSE(ta_has_parent(tactx, ptr1));
+    assert_not_null(ptr1);
+    assert_equal(ta_get_parent(ptr1), tactx);
+    assert_false(ta_has_parent(ptr1, NULL));
+    assert_false(ta_has_parent(ptr1, ptr1));
+    assert_true(ta_has_parent(ptr1, tactx));
+    assert_false(ta_has_parent(tactx, ptr1));
 
     void *ptr2 = ta_alloc(tactx, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr2);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr2), tactx);
-    CU_ASSERT_FALSE(ta_has_parent(ptr2, NULL));
-    CU_ASSERT_FALSE(ta_has_parent(ptr2, ptr2));
-    CU_ASSERT_TRUE(ta_has_parent(ptr2, tactx));
-    CU_ASSERT_FALSE(ta_has_parent(tactx, ptr2));
-    CU_ASSERT_FALSE(ta_has_parent(ptr2, ptr1));
-    CU_ASSERT_FALSE(ta_has_parent(ptr1, ptr2));
+    assert_not_null(ptr2);
+    assert_equal(ta_get_parent(ptr2), tactx);
+    assert_false(ta_has_parent(ptr2, NULL));
+    assert_false(ta_has_parent(ptr2, ptr2));
+    assert_true(ta_has_parent(ptr2, tactx));
+    assert_false(ta_has_parent(tactx, ptr2));
+    assert_false(ta_has_parent(ptr2, ptr1));
+    assert_false(ta_has_parent(ptr1, ptr2));
 
     void *ptr3 = ta_alloc(ptr1, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr3);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr3), ptr1);
-    CU_ASSERT_FALSE(ta_has_parent(ptr3, NULL));
-    CU_ASSERT_FALSE(ta_has_parent(ptr3, ptr3));
-    CU_ASSERT_TRUE(ta_has_parent(ptr3, tactx));
-    CU_ASSERT_FALSE(ta_has_parent(tactx, ptr3));
-    CU_ASSERT_TRUE(ta_has_parent(ptr3, ptr1));
-    CU_ASSERT_FALSE(ta_has_parent(ptr1, ptr3));
-    CU_ASSERT_FALSE(ta_has_parent(ptr3, ptr2));
-    CU_ASSERT_FALSE(ta_has_parent(ptr2, ptr3));
+    assert_not_null(ptr3);
+    assert_equal(ta_get_parent(ptr3), ptr1);
+    assert_false(ta_has_parent(ptr3, NULL));
+    assert_false(ta_has_parent(ptr3, ptr3));
+    assert_true(ta_has_parent(ptr3, tactx));
+    assert_false(ta_has_parent(tactx, ptr3));
+    assert_true(ta_has_parent(ptr3, ptr1));
+    assert_false(ta_has_parent(ptr1, ptr3));
+    assert_false(ta_has_parent(ptr3, ptr2));
+    assert_false(ta_has_parent(ptr2, ptr3));
 
     ta_free(ptr2);
     ta_free(tactx);
 }
 
-static void test_ta_has_child(void)
+TEST(test_ta_has_child)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
-    CU_ASSERT_FALSE(ta_has_child(tactx, NULL));
-    CU_ASSERT_FALSE(ta_has_child(tactx, tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    assert_false(ta_has_child(tactx, NULL));
+    assert_false(ta_has_child(tactx, tactx));
 
     void *ptr1 = ta_alloc(tactx, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr1);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr1), tactx);
-    CU_ASSERT_FALSE(ta_has_child(ptr1, NULL));
-    CU_ASSERT_FALSE(ta_has_child(ptr1, ptr1));
-    CU_ASSERT_FALSE(ta_has_child(ptr1, tactx));
-    CU_ASSERT_TRUE(ta_has_child(tactx, ptr1));
+    assert_not_null(ptr1);
+    assert_equal(ta_get_parent(ptr1), tactx);
+    assert_false(ta_has_child(ptr1, NULL));
+    assert_false(ta_has_child(ptr1, ptr1));
+    assert_false(ta_has_child(ptr1, tactx));
+    assert_true(ta_has_child(tactx, ptr1));
 
     void *ptr2 = ta_alloc(tactx, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr2);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr2), tactx);
-    CU_ASSERT_FALSE(ta_has_child(ptr2, NULL));
-    CU_ASSERT_FALSE(ta_has_child(ptr2, ptr2));
-    CU_ASSERT_FALSE(ta_has_child(ptr2, tactx));
-    CU_ASSERT_TRUE(ta_has_child(tactx, ptr2));
-    CU_ASSERT_FALSE(ta_has_child(ptr2, ptr1));
-    CU_ASSERT_FALSE(ta_has_child(ptr1, ptr2));
+    assert_not_null(ptr2);
+    assert_equal(ta_get_parent(ptr2), tactx);
+    assert_false(ta_has_child(ptr2, NULL));
+    assert_false(ta_has_child(ptr2, ptr2));
+    assert_false(ta_has_child(ptr2, tactx));
+    assert_true(ta_has_child(tactx, ptr2));
+    assert_false(ta_has_child(ptr2, ptr1));
+    assert_false(ta_has_child(ptr1, ptr2));
 
     void *ptr3 = ta_alloc(ptr1, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr3);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr3), ptr1);
-    CU_ASSERT_FALSE(ta_has_child(ptr3, NULL));
-    CU_ASSERT_FALSE(ta_has_child(ptr3, ptr3));
-    CU_ASSERT_FALSE(ta_has_child(ptr3, tactx));
-    CU_ASSERT_TRUE(ta_has_child(tactx, ptr3));
-    CU_ASSERT_FALSE(ta_has_child(ptr3, ptr1));
-    CU_ASSERT_TRUE(ta_has_child(ptr1, ptr3));
-    CU_ASSERT_FALSE(ta_has_child(ptr3, ptr2));
-    CU_ASSERT_FALSE(ta_has_child(ptr2, ptr3));
+    assert_not_null(ptr3);
+    assert_equal(ta_get_parent(ptr3), ptr1);
+    assert_false(ta_has_child(ptr3, NULL));
+    assert_false(ta_has_child(ptr3, ptr3));
+    assert_false(ta_has_child(ptr3, tactx));
+    assert_true(ta_has_child(tactx, ptr3));
+    assert_false(ta_has_child(ptr3, ptr1));
+    assert_true(ta_has_child(ptr1, ptr3));
+    assert_false(ta_has_child(ptr3, ptr2));
+    assert_false(ta_has_child(ptr2, ptr3));
 
     ta_free(ptr2);
     ta_free(tactx);
 }
 
-static void test_ta_move_children(void)
+TEST(test_ta_move_children)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    ta_move_children(tactx, NULL);
     {
         void *src = ta_alloc(tactx, 0);
 
@@ -383,15 +480,15 @@ static void test_ta_move_children(void)
 
         ta_move_children(src, NULL);
 
-        CU_ASSERT_PTR_NULL(ta_get_child(src));
+        assert_null(ta_get_child(src));
 
-        CU_ASSERT_FALSE(ta_has_child(src, ptr1));
-        CU_ASSERT_FALSE(ta_has_child(src, ptr2));
-        CU_ASSERT_FALSE(ta_has_child(src, ptr3));
+        assert_false(ta_has_child(src, ptr1));
+        assert_false(ta_has_child(src, ptr2));
+        assert_false(ta_has_child(src, ptr3));
 
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr1));
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr2));
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr3));
+        assert_null(ta_get_parent(ptr1));
+        assert_null(ta_get_parent(ptr2));
+        assert_null(ta_get_parent(ptr3));
 
         ta_free(ptr1);
         ta_free(ptr2);
@@ -407,20 +504,20 @@ static void test_ta_move_children(void)
 
         ta_move_children(src, dst);
 
-        CU_ASSERT_PTR_NULL(ta_get_child(src));
-        CU_ASSERT_PTR_NOT_NULL(ta_get_child(dst));
+        assert_null(ta_get_child(src));
+        assert_not_null(ta_get_child(dst));
 
-        CU_ASSERT_FALSE(ta_has_child(src, ptr1));
-        CU_ASSERT_FALSE(ta_has_child(src, ptr2));
-        CU_ASSERT_FALSE(ta_has_child(src, ptr3));
+        assert_false(ta_has_child(src, ptr1));
+        assert_false(ta_has_child(src, ptr2));
+        assert_false(ta_has_child(src, ptr3));
 
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr1), dst);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr2), dst);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr3), dst);
+        assert_equal(ta_get_parent(ptr1), dst);
+        assert_equal(ta_get_parent(ptr2), dst);
+        assert_equal(ta_get_parent(ptr3), dst);
 
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr1));
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr2));
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr3));
+        assert_true(ta_has_child(dst, ptr1));
+        assert_true(ta_has_child(dst, ptr2));
+        assert_true(ta_has_child(dst, ptr3));
     }
     {
         void *src = ta_alloc(tactx, 0);
@@ -436,726 +533,787 @@ static void test_ta_move_children(void)
 
         ta_move_children(src, dst);
 
-        CU_ASSERT_PTR_NULL(ta_get_child(src));
-        CU_ASSERT_PTR_NOT_NULL(ta_get_child(dst));
+        assert_null(ta_get_child(src));
+        assert_not_null(ta_get_child(dst));
 
-        CU_ASSERT_FALSE(ta_has_child(src, ptr1));
-        CU_ASSERT_FALSE(ta_has_child(src, ptr2));
-        CU_ASSERT_FALSE(ta_has_child(src, ptr3));
+        assert_false(ta_has_child(src, ptr1));
+        assert_false(ta_has_child(src, ptr2));
+        assert_false(ta_has_child(src, ptr3));
 
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr1), dst);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr2), dst);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr3), dst);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr4), dst);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr5), dst);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr6), dst);
+        assert_equal(ta_get_parent(ptr1), dst);
+        assert_equal(ta_get_parent(ptr2), dst);
+        assert_equal(ta_get_parent(ptr3), dst);
+        assert_equal(ta_get_parent(ptr4), dst);
+        assert_equal(ta_get_parent(ptr5), dst);
+        assert_equal(ta_get_parent(ptr6), dst);
 
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr1));
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr2));
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr3));
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr4));
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr5));
-        CU_ASSERT_TRUE(ta_has_child(dst, ptr6));
+        assert_true(ta_has_child(dst, ptr1));
+        assert_true(ta_has_child(dst, ptr2));
+        assert_true(ta_has_child(dst, ptr3));
+        assert_true(ta_has_child(dst, ptr4));
+        assert_true(ta_has_child(dst, ptr5));
+        assert_true(ta_has_child(dst, ptr6));
 
-        CU_ASSERT_PTR_EQUAL(ta_get_next(ptr4), ptr3);
-        CU_ASSERT_PTR_EQUAL(ta_get_prev(ptr3), ptr4);
-        CU_ASSERT_PTR_NULL(ta_get_next(ptr1));
-        CU_ASSERT_PTR_NULL(ta_get_prev(ptr6));
+        assert_equal(ta_get_next(ptr4), ptr3);
+        assert_equal(ta_get_prev(ptr3), ptr4);
+        assert_null(ta_get_next(ptr1));
+        assert_null(ta_get_prev(ptr6));
     }
     ta_free(tactx);
 }
 
-static void test_ta_alloc(void)
+TEST(test_ta_alloc)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         void *ptr = ta_alloc(tactx, sizeof(int));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int));
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int));
         ta_free(ptr);
     }
     {
         void *ptr = ta_alloc(tactx, sizeof(NULL));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(NULL));
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(NULL));
         ta_free(ptr);
     }
     for (size_t i = 0; i < 10; ++i) {
         void *ptr = ta_alloc(NULL, i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), i);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), i);
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_zalloc(void)
+TEST(test_ta_zalloc)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         void *ptr = ta_zalloc(tactx, sizeof(int));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int));
-        CU_ASSERT_EQUAL(*(int *)ptr, 0);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int));
+        assert_equal(*(int *)ptr, 0);
         ta_free(ptr);
     }
     {
         void *ptr = ta_zalloc(tactx, sizeof(NULL));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(NULL));
-        CU_ASSERT_EQUAL(*(uintptr_t *)ptr, 0);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(NULL));
+        assert_equal(*(uintptr_t *)ptr, 0);
         ta_free(ptr);
     }
     for (size_t i = 0; i < 10; ++i) {
         void *ptr = ta_zalloc(NULL, i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), i);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), i);
         for (size_t j = 0; j < i; ++j)
-            CU_ASSERT_EQUAL(((uint8_t *)ptr)[j], 0);
+            assert_equal(((uint8_t *)ptr)[j], 0);
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_realloc(void)
+TEST(test_ta_realloc)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
 
     void *ptr = NULL;
 
     ptr = ta_realloc(tactx, ptr, 10);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 10);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 10);
 
     ptr = ta_realloc(tactx, ptr, 5);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 5);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 5);
 
     ptr = ta_realloc(NULL, ptr, 5);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 5);
+    assert_not_null(ptr);
+    assert_null(ta_get_parent(ptr));
+    assert_equal(ta_get_size(ptr), 5);
 
     ptr = ta_realloc(tactx, ptr, 1);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 1);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 1);
 
     ptr = ta_realloc(tactx, ptr, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 0);
 
     ptr = ta_realloc(NULL, ptr, 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+    assert_not_null(ptr);
+    assert_null(ta_get_parent(ptr));
+    assert_equal(ta_get_size(ptr), 0);
 
     ptr = ta_realloc(tactx, ptr, 25);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 25);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 25);
+
+    void *arr[10];
+    for (size_t i = 0; i < 10; ++i) {
+        ptr = arr[i] = ta_realloc(tactx, NULL, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
+    }
+
+    ptr = ta_realloc(tactx, arr[3], 30);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 30);
+
+    ptr = ta_realloc(tactx, arr[6], 60);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 60);
+
+    ptr = ta_realloc(tactx, arr[0], 10);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 10);
+
+    ptr = ta_realloc(tactx, arr[9], 90);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 90);
+
+    ptr = ta_realloc(tactx, arr[4], 40);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 40);
+
+    ptr = ta_realloc(tactx, arr[5], 50);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 50);
 
     ta_free(tactx);
 }
 
-static void test_ta_alloc_array(void)
+TEST(test_ta_alloc_array)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         int *ptr = (int *)ta_alloc_array(tactx, sizeof(*ptr), 10);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 10);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int) * 10);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_alloc_array(tactx, sizeof(*ptr), 5);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 5);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int) * 5);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_alloc_array(NULL, sizeof(*ptr), 1);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 1);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), sizeof(int) * 1);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_alloc_array(tactx, sizeof(*ptr), 0);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_alloc_array(NULL, sizeof(*ptr), 0);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_alloc_array(tactx, sizeof(*ptr), 25);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 25);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int) * 25);
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_zalloc_array(void)
+TEST(test_ta_zalloc_array)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         int *ptr = (int *)ta_zalloc_array(tactx, sizeof(*ptr), 10);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 10);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int) * 10);
         for (size_t i = 0; i < 10; ++i)
-            CU_ASSERT_EQUAL(ptr[i], 0);
+            assert_equal(ptr[i], 0);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_zalloc_array(tactx, sizeof(*ptr), 5);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 5);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int) * 5);
         for (size_t i = 0; i < 5; ++i)
-            CU_ASSERT_EQUAL(ptr[i], 0);
+            assert_equal(ptr[i], 0);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_zalloc_array(NULL, sizeof(*ptr), 1);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 1);
-        CU_ASSERT_EQUAL(ptr[0], 0);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), sizeof(int) * 1);
+        assert_equal(ptr[0], 0);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_zalloc_array(tactx, sizeof(*ptr), 0);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_zalloc_array(NULL, sizeof(*ptr), 0);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     {
         int *ptr = (int *)ta_zalloc_array(tactx, sizeof(*ptr), 25);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 25);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int) * 25);
         for (size_t i = 0; i < 25; ++i)
-            CU_ASSERT_EQUAL(ptr[i], 0);
+            assert_equal(ptr[i], 0);
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_realloc_array(void)
+TEST(test_ta_realloc_array)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
 
     int *ptr = NULL;
 
     ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 10);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 10);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), sizeof(int) * 10);
 
     ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 5);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 5);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), sizeof(int) * 5);
 
     ptr = (int *)ta_realloc_array(NULL, ptr, sizeof(*ptr), 5);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-    CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 5);
+    assert_not_null(ptr);
+    assert_null(ta_get_parent(ptr));
+    assert_equal(ta_get_size(ptr), sizeof(int) * 5);
 
     ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 1);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 1);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), sizeof(int) * 1);
 
     ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), 0);
 
     ptr = (int *)ta_realloc_array(NULL, ptr, sizeof(*ptr), 0);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-    CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+    assert_not_null(ptr);
+    assert_null(ta_get_parent(ptr));
+    assert_equal(ta_get_size(ptr), 0);
 
     ptr = (int *)ta_realloc_array(tactx, ptr, sizeof(*ptr), 25);
-    CU_ASSERT_PTR_NOT_NULL(ptr);
-    CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-    CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int) * 25);
+    assert_not_null(ptr);
+    assert_equal(ta_get_parent(ptr), tactx);
+    assert_equal(ta_get_size(ptr), sizeof(int) * 25);
 
     ta_free(tactx);
 }
 
-static void test_ta_assign(void)
+TEST(test_ta_free)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+
+    void *arr[10];
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = arr[i] = ta_alloc(tactx, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
+    }
+
+    ta_free(arr[3]);
+    ta_free(arr[6]);
+    ta_free(arr[0]);
+    ta_free(arr[9]);
+    ta_free(arr[4]);
+    ta_free(arr[5]);
+    ta_free(tactx);
+}
+
+TEST(test_ta_assign)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         void *ptr = ta_assign(tactx, NULL, sizeof(int));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int));
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int));
         ta_free(ptr);
     }
     for (size_t i = 0; i < 10; ++i) {
         void *ptr = ta_assign(tactx, NULL, i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
         ta_free(ptr);
     }
     {
         void *ptr = malloc(sizeof(int));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
+        assert_not_null(ptr);
         ptr = ta_assign(NULL, ptr, sizeof(int));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(int));
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), sizeof(int));
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_memdup(void)
+TEST(test_ta_memdup)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
 
     const char str[] = "hello, world";
     {
         char *ptr = (char *)ta_memdup(tactx, str, sizeof(str));
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(str));
-        CU_ASSERT_STRING_EQUAL(ptr, str);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(str));
+        assert_str_equal(ptr, str);
         ta_free(ptr);
     }
     {
         char *ptr = (char *)ta_memdup(NULL, str, 0);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 0);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), 0);
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_strdup(void)
+TEST(test_ta_strdup)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
 
     const char str[] = "hello, world";
     {
         char *ptr = ta_strdup(tactx, str);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(str));
-        CU_ASSERT_STRING_EQUAL(ptr, str);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(str));
+        assert_str_equal(ptr, str);
         ta_free(ptr);
     }
     {
         char *ptr = ta_strdup(NULL, "");
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 1);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), 1);
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_strdup_append(void)
+TEST(test_ta_strdup_append)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         char *str = ta_strdup(tactx, "hello");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_strdup_append(str, ", ");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_strdup_append(str, "world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     {
         char *str = ta_strdup(tactx, "hello\0world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_strdup_append(str, ", ");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_strdup_append(str, "world\0hello");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     ta_free(tactx);
 }
 
-static void test_ta_strdup_append_buffer(void)
+TEST(test_ta_strdup_append_buffer)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         char *str = ta_strdup(tactx, "hello");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_strdup_append_buffer(str, ", ");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_strdup_append_buffer(str, "world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     {
         char *str = (char *)ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world"));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world"));
+        assert_true(!memcmp(str, "hello\0world", ta_get_size(str)));
 
         str = ta_strdup_append_buffer(str, ", ");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world, "));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world, ", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world, "));
+        assert_true(!memcmp(str, "hello\0world, ", ta_get_size(str)));
 
         str = ta_strdup_append_buffer(str, "world\0hello");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world, world"));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world, world", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world, world"));
+        assert_true(!memcmp(str, "hello\0world, world", ta_get_size(str)));
         ta_free(str);
     }
     ta_free(tactx);
 }
 
-static void test_ta_strndup(void)
+TEST(test_ta_strndup)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
 
     const char str[] = "hello, world";
     {
         char *ptr = ta_strndup(tactx, str, 5);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 6);
-        CU_ASSERT_NSTRING_EQUAL(ptr, str, 5);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), 6);
+        assert_strn_equal(ptr, str, 5);
         ta_free(ptr);
     }
     {
         char *ptr = ta_strndup(tactx, str, 1000);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(str));
-        CU_ASSERT_NSTRING_EQUAL(ptr, str, sizeof(str));
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(str));
+        assert_strn_equal(ptr, str, sizeof(str));
         ta_free(ptr);
     }
     {
         char *ptr = ta_strndup(NULL, str, 0);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 1);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), 1);
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_strndup_append(void)
+TEST(test_ta_strndup_append)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         char *str = ta_strndup(tactx, "hello, world", 5);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_strndup_append(str, ", world", 2);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_strndup_append(str, "world hello", 5);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     {
         char *str = ta_strndup(tactx, "hello\0world", 1000);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_strndup_append(str, ", world", 2);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_strndup_append(str, "world\0hello", 1000);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     ta_free(tactx);
 }
 
-static void test_ta_strndup_append_buffer(void)
+TEST(test_ta_strndup_append_buffer)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         char *str = ta_strndup(tactx, "hello, world", 5);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_strndup_append_buffer(str, ", world", 2);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_strndup_append_buffer(str, "world\0hello", 1000);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     {
         char *str = (char *)ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world"));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world"));
+        assert_true(!memcmp(str, "hello\0world", ta_get_size(str)));
 
         str = ta_strndup_append_buffer(str, ", world", 2);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world, "));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world, ", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world, "));
+        assert_true(!memcmp(str, "hello\0world, ", ta_get_size(str)));
 
         str = ta_strndup_append_buffer(str, "world\0hello", 1000);
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world, world"));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world, world", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world, world"));
+        assert_true(!memcmp(str, "hello\0world, world", ta_get_size(str)));
         ta_free(str);
     }
     ta_free(tactx);
 }
 
-static void test_ta_asprintf(void)
+TEST(test_ta_asprintf)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
 
     const char str[] = "hello, world";
     {
         char *ptr = ta_asprintf(tactx, "%.*s", 5, str);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 6);
-        CU_ASSERT_NSTRING_EQUAL(ptr, str, 5);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), 6);
+        assert_strn_equal(ptr, str, 5);
         ta_free(ptr);
     }
     {
         char *ptr = ta_asprintf(tactx, "%s", str);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), sizeof(str));
-        CU_ASSERT_NSTRING_EQUAL(ptr, str, sizeof(str));
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(str));
+        assert_strn_equal(ptr, str, sizeof(str));
         ta_free(ptr);
     }
     {
         char *ptr = ta_asprintf(NULL, "%s", "");
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_NULL(ta_get_parent(ptr));
-        CU_ASSERT_EQUAL(ta_get_size(ptr), 1);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), 1);
         ta_free(ptr);
     }
     ta_free(tactx);
 }
 
-static void test_ta_asprintf_append(void)
+TEST(test_ta_asprintf_append)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         char *str = ta_asprintf(tactx, "%.*s", 5, "hello, world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_asprintf_append(str, "%.*s", 2, ", world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_asprintf_append(str, "%.*s", 5, "world hello");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     {
         char *str = ta_asprintf(tactx, "%s", "hello\0world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_asprintf_append(str, "%.*s", 2, ", world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_asprintf_append(str, "%s", "world\0hello");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     ta_free(tactx);
 }
 
-static void test_ta_asprintf_append_buffer(void)
+TEST(test_ta_asprintf_append_buffer)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
     {
         char *str = ta_asprintf(tactx, "%.*s", 5, "hello, world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello"));
-        CU_ASSERT_STRING_EQUAL(str, "hello");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello"));
+        assert_str_equal(str, "hello");
 
         str = ta_asprintf_append_buffer(str, "%.*s", 2, ", world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, "));
-        CU_ASSERT_STRING_EQUAL(str, "hello, ");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, "));
+        assert_str_equal(str, "hello, ");
 
         str = ta_asprintf_append_buffer(str, "%s", "world\0hello");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello, world"));
-        CU_ASSERT_STRING_EQUAL(str, "hello, world");
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello, world"));
+        assert_str_equal(str, "hello, world");
         ta_free(str);
     }
     {
         char *str = (char *)ta_memdup(tactx, "hello\0world", sizeof("hello\0world"));
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world"));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world"));
+        assert_true(!memcmp(str, "hello\0world", ta_get_size(str)));
 
         str = ta_asprintf_append_buffer(str, "%.*s", 2, ", world");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world, "));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world, ", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world, "));
+        assert_true(!memcmp(str, "hello\0world, ", ta_get_size(str)));
 
         str = ta_asprintf_append_buffer(str, "%s", "world\0hello");
-        CU_ASSERT_PTR_NOT_NULL(str);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(str), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(str), sizeof("hello\0world, world"));
-        CU_ASSERT_TRUE(!memcmp(str, "hello\0world, world", ta_get_size(str)));
+        assert_not_null(str);
+        assert_equal(ta_get_parent(str), tactx);
+        assert_equal(ta_get_size(str), sizeof("hello\0world, world"));
+        assert_true(!memcmp(str, "hello\0world, world", ta_get_size(str)));
         ta_free(str);
     }
     ta_free(tactx);
@@ -1171,36 +1329,36 @@ static void ctx_destructor(void *ptr)
     *ctx->a = 2;
 }
 
-static void test_ta_destructor(void)
+TEST(test_ta_destructor)
 {
     int a = 1;
     struct ctx *ctx = (struct ctx *)ta_alloc(NULL, sizeof(struct ctx));
-    CU_ASSERT_PTR_NULL(ta_get_destructor(ctx));
+    assert_null(ta_get_destructor(ctx));
     ctx->a = &a;
     ta_set_destructor(ctx, ctx_destructor);
-    CU_ASSERT_PTR_EQUAL(ta_get_destructor(ctx), ctx_destructor);
+    assert_equal(ta_get_destructor(ctx), ctx_destructor);
     ta_free(ctx);
-    CU_ASSERT_EQUAL(a, 2);
+    assert_equal(a, 2);
 }
 
-static void test_ta_foreach(void)
+TEST(test_ta_foreach)
 {
     void *tactx = ta_alloc(NULL, 0);
-    CU_ASSERT_PTR_NOT_NULL(tactx);
-    CU_ASSERT_PTR_NULL(ta_get_parent(tactx));
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
 
     size_t j = 5;
     for (size_t i = 0; i < j; ++i) {
         void *ptr = ta_alloc(tactx, i);
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
     }
 
     void *ptr;
     TA_FOREACH(ptr, tactx) {
-        CU_ASSERT_PTR_NOT_NULL(ptr);
-        CU_ASSERT_PTR_EQUAL(ta_get_parent(ptr), tactx);
-        CU_ASSERT_EQUAL(ta_get_size(ptr), --j);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), --j);
     }
 
     ta_free(tactx);
@@ -1208,62 +1366,56 @@ static void test_ta_foreach(void)
 
 int main(void)
 {
-    if (CU_initialize_registry() != CUE_SUCCESS)
-        return (int)CU_get_error();
+    struct {
+        const char *name;
+        void (*func)(const char *__unit);
+    } tests[] = {
+        { "ta_xmalloc", test_ta_xmalloc },
+        { "ta_xcalloc", test_ta_xcalloc },
+        { "ta_xrealloc", test_ta_xrealloc },
+        { "ta_xzalloc", test_ta_xzalloc },
+#ifndef _WIN32
+        { "ta_xmemalign", test_ta_xmemalign },
+#endif
+        { "ta_xstrdup", test_ta_xstrdup },
+        { "ta_xstrndup", test_ta_xstrndup },
+        { "ta_xmemdup", test_ta_xmemdup },
+        { "ta_xasprintf", test_ta_xasprintf },
+        { "ta_set_parent", test_ta_set_parent },
+        { "ta_get_parent", test_ta_get_parent },
+        { "ta_get_size", test_ta_get_size },
+        { "ta_get_child", test_ta_get_child },
+        { "ta_get_next", test_ta_get_next },
+        { "ta_get_prev", test_ta_get_prev },
+        { "ta_has_parent", test_ta_has_parent },
+        { "ta_has_child", test_ta_has_child },
+        { "ta_move_children", test_ta_move_children },
+        { "ta_alloc", test_ta_alloc },
+        { "ta_zalloc", test_ta_zalloc },
+        { "ta_realloc", test_ta_realloc },
+        { "ta_alloc_array", test_ta_alloc_array },
+        { "ta_zalloc_array", test_ta_zalloc_array },
+        { "ta_realloc_array", test_ta_realloc_array },
+        { "ta_free", test_ta_free },
+        { "ta_assign", test_ta_assign },
+        { "ta_memdup", test_ta_memdup },
+        { "ta_strdup", test_ta_strdup },
+        { "ta_strdup_append", test_ta_strdup_append },
+        { "ta_strdup_append_buffer", test_ta_strdup_append_buffer },
+        { "ta_strndup", test_ta_strndup },
+        { "ta_strndup_append", test_ta_strndup_append },
+        { "ta_strndup_append_buffer", test_ta_strndup_append_buffer },
+        { "ta_asprintf", test_ta_asprintf },
+        { "ta_asprintf_append", test_ta_asprintf_append },
+        { "ta_asprintf_append_buffer", test_ta_asprintf_append_buffer },
+        { "ta_destructor", test_ta_destructor },
+        { "ta_foreach", test_ta_foreach },
+    };
 
-    CU_pSuite pSuite = CU_add_suite("ta", NULL, NULL);
-    if (!pSuite)
-        goto error;
-
-    if (!CU_ADD_TEST(pSuite, test_ta_xmalloc) ||
-        !CU_ADD_TEST(pSuite, test_ta_xcalloc) ||
-        !CU_ADD_TEST(pSuite, test_ta_xrealloc) ||
-        !CU_ADD_TEST(pSuite, test_ta_xzalloc) ||
-        !CU_ADD_TEST(pSuite, test_ta_xstrdup) ||
-        !CU_ADD_TEST(pSuite, test_ta_xstrndup) ||
-        !CU_ADD_TEST(pSuite, test_ta_xmemdup) ||
-        !CU_ADD_TEST(pSuite, test_ta_get_parent) ||
-        !CU_ADD_TEST(pSuite, test_ta_get_size) ||
-        !CU_ADD_TEST(pSuite, test_ta_get_child) ||
-        !CU_ADD_TEST(pSuite, test_ta_get_next) ||
-        !CU_ADD_TEST(pSuite, test_ta_get_prev) ||
-        !CU_ADD_TEST(pSuite, test_ta_has_parent) ||
-        !CU_ADD_TEST(pSuite, test_ta_has_child) ||
-        !CU_ADD_TEST(pSuite, test_ta_move_children) ||
-        !CU_ADD_TEST(pSuite, test_ta_alloc) ||
-        !CU_ADD_TEST(pSuite, test_ta_zalloc) ||
-        !CU_ADD_TEST(pSuite, test_ta_realloc) ||
-        !CU_ADD_TEST(pSuite, test_ta_alloc_array) ||
-        !CU_ADD_TEST(pSuite, test_ta_zalloc_array) ||
-        !CU_ADD_TEST(pSuite, test_ta_realloc_array) ||
-        !CU_ADD_TEST(pSuite, test_ta_assign) ||
-        !CU_ADD_TEST(pSuite, test_ta_memdup) ||
-        !CU_ADD_TEST(pSuite, test_ta_strdup) ||
-        !CU_ADD_TEST(pSuite, test_ta_strdup_append) ||
-        !CU_ADD_TEST(pSuite, test_ta_strdup_append_buffer) ||
-        !CU_ADD_TEST(pSuite, test_ta_strndup) ||
-        !CU_ADD_TEST(pSuite, test_ta_strndup_append) ||
-        !CU_ADD_TEST(pSuite, test_ta_strndup_append_buffer) ||
-        !CU_ADD_TEST(pSuite, test_ta_asprintf) ||
-        !CU_ADD_TEST(pSuite, test_ta_asprintf_append) ||
-        !CU_ADD_TEST(pSuite, test_ta_asprintf_append_buffer) ||
-        !CU_ADD_TEST(pSuite, test_ta_destructor) ||
-        !CU_ADD_TEST(pSuite, test_ta_foreach)) {
-        goto error;
+    for (size_t i = 0, n = sizeof(tests) / sizeof(tests[0]); i < n; ++i) {
+        printf(">>> Testing (%zu of %zu) %s...\n", i + 1, n, tests[i].name);
+        tests[i].func(tests[i].name);
     }
 
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    unsigned int num = CU_get_number_of_tests_failed();
-    CU_cleanup_registry();
-    if (CU_get_error() == CUE_SUCCESS) {
-        return (int)num;
-    } else {
-        printf("CUnit Error: %s\n", CU_get_error_msg());
-        return (int)CU_get_error();
-    }
-
-error:
-    CU_cleanup_registry();
-    return (int)CU_get_error();
+    return EXIT_SUCCESS;
 }

@@ -6,16 +6,8 @@
 
 #include "ta.h"
 
-#ifndef __ta_packed
-#   if defined(__GNUC__) || __ta_has_attribute(__packed__)
-#       define __ta_packed __attribute__((__packed__))
-#   else
-#       define __ta_packed
-#   endif
-#endif
-
 #ifndef __ta_aligned
-#   if defined(__GNUC__) || __ta_has_attribute(__aligned__)
+#   if __ta_has_attribute(__aligned__)
 #       define __ta_aligned(x) __attribute__((__aligned__(x)))
 #   else
 #       define __ta_aligned(x)
@@ -23,7 +15,7 @@
 #endif
 
 #ifndef __ta_inline
-#   if defined(__GNUC__) || __ta_has_attribute(__always_inline__)
+#   if __ta_has_attribute(__always_inline__)
 #       define __ta_inline inline __attribute__((__always_inline__))
 #   else
 #       define __ta_inline inline
@@ -31,16 +23,16 @@
 #endif
 
 struct ta_header {
-    uint32_t magic;
+    uintptr_t magic;
     struct ta_header *list;
     struct ta_header *prev;
     struct ta_header *next;
     size_t size;
     ta_destructor destructor;
-} __ta_packed __ta_aligned(alignof(max_align_t));
+} __ta_aligned(alignof(max_align_t));
 
 #ifndef TA_MAGIC
-#define TA_MAGIC 0x8FBEA918ul
+#define TA_MAGIC 0x8FBEA918UL
 #endif
 
 #define TA_HDR_SIZE sizeof(struct ta_header)
@@ -52,12 +44,17 @@ struct ta_header {
 static __ta_inline __ta_nodiscard __ta_nonnull
 struct ta_header *ta_header_from_ptr(const void *ptr)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely((uintptr_t)ptr <= TA_HDR_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = TA_HDR_FROM_PTR(ptr);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(h->magic != TA_MAGIC))
         abort();
+    // GCOVR_EXCL_STOP
 
     return h;
 }
@@ -91,7 +88,7 @@ static void ta_header_free(struct ta_header *h)
     }
 
     while (h->list)
-        ta_header_free(h->list);
+        ta_header_free(h->list); // NOLINT(clang-analyzer-unix.Malloc)
 
     if (h->prev) {
         if (h->prev->list == h) {
@@ -113,8 +110,11 @@ void *ta_header_realloc(struct ta_header *h, size_t size)
     struct ta_header *h_old = h;
 
     h = (struct ta_header *)realloc(h, TA_HDR_SIZE + size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!h))
         abort();
+    // GCOVR_EXCL_STOP
 
     h->size = size;
 
@@ -139,11 +139,13 @@ static __ta_inline __ta_nodiscard __ta_nonnull
 char *ta_header_append(struct ta_header *restrict h, size_t at,
                        const char *restrict append, size_t len)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(h->size < at))
         abort();
 
     if (__ta_unlikely(len >= TA_MAX_SIZE || at >= TA_MAX_SIZE - len))
         abort();
+    // GCOVR_EXCL_STOP
 
     char *str = h->size <= at + len
                 ? (char *)ta_header_realloc(h, at + len + 1)
@@ -160,27 +162,32 @@ static __ta_nodiscard __ta_nonnull __ta_printf(3, 0)
 char *ta_header_printf(struct ta_header *restrict h, size_t at,
                        const char *restrict format, va_list ap)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(h->size < at))
         abort();
+    // GCOVR_EXCL_STOP
 
     va_list copy;
     va_copy(copy, ap);
-    char c;
-    int len = vsnprintf(&c, 1, format, copy);
+    int len = vsnprintf(NULL, 0, format, copy);
     va_end(copy);
 
+    // GCOVR_EXCL_START
     if (__ta_unlikely(len < 0))
         abort();
 
     if (__ta_unlikely((size_t)len >= TA_MAX_SIZE || at >= TA_MAX_SIZE - (size_t)len))
         abort();
+    // GCOVR_EXCL_STOP
 
     char *str = h->size <= at + (size_t)len
                 ? (char *)ta_header_realloc(h, at + (size_t)len + 1)
                 : (char *)TA_PTR_FROM_HDR(h);
 
+    // GCOVR_EXCL_START
     if (__ta_unlikely(vsnprintf(str + at, (size_t)len + 1, format, ap) != len))
         abort();
+    // GCOVR_EXCL_STOP
 
     return str;
 }
@@ -221,8 +228,11 @@ void *ta_xmalloc(size_t size)
         size = 1;
 
     void *ptr = malloc(size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!ptr))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ptr;
 }
@@ -233,8 +243,11 @@ void *ta_xcalloc(size_t n, size_t size)
         n = size = 1;
 
     void *ptr = calloc(n, size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!ptr))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ptr;
 }
@@ -245,8 +258,11 @@ void *ta_xrealloc(void *ptr, size_t size)
         size = 1;
 
     ptr = ptr ? realloc(ptr, size) : malloc(size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!ptr))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ptr;
 }
@@ -257,75 +273,171 @@ void *ta_xzalloc(size_t size)
         size = 1;
 
     void *ptr = calloc(1, size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!ptr))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ptr;
 }
 
-char *ta_xstrdup(const char *str)
+#ifndef _WIN32
+void *ta_xmemalign(size_t alignment, size_t n)
 {
-    if (__ta_unlikely(!str))
-        abort();
+#if defined(HAVE_POSIX_MEMALIGN)
+    void *ptr = NULL;
+    int rc = posix_memalign(&ptr, alignment, n);
 
-    char *ptr = strdup(str);
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(rc != 0))
+        abort();
+    // GCOVR_EXCL_STOP
+#elif defined(HAVE_ALIGNED_ALLOC)
+    void *ptr = aligned_alloc(alignment, n);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!ptr))
         abort();
+    // GCOVR_EXCL_STOP
+#else
+#   error "memalign not implemented"
+#endif
 
     return ptr;
+}
+#endif
+
+char *ta_xstrdup(const char *str)
+{
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(!str))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    size_t n = strlen(str) + 1;
+    void *ptr = malloc(n);
+
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(!ptr))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    return (char *)memcpy(ptr, str, n);
 }
 
 char *ta_xstrndup(const char *str, size_t n)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str))
         abort();
+    // GCOVR_EXCL_STOP
 
+#if defined(HAVE_STRNDUP)
     char *ptr = strndup(str, n);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!ptr))
         abort();
+    // GCOVR_EXCL_STOP
+#else
+    n = strnlen(str, n);
+    char *ptr = (char *)malloc(n + 1);
+
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(!ptr))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    if (__ta_likely(n))
+        memcpy(ptr, str, n);
+
+    ptr[n] = '\0';
+#endif
 
     return ptr;
 }
 
 void *ta_xmemdup(const void *mem, size_t n)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!mem))
         abort();
+    // GCOVR_EXCL_STOP
 
     if (__ta_unlikely(!n)) {
         void *ptr = malloc(1);
+
+        // GCOVR_EXCL_START
         if (__ta_unlikely(!ptr))
             abort();
+        // GCOVR_EXCL_STOP
+
         return ptr;
     }
 
     void *ptr = malloc(n);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!ptr))
         abort();
+    // GCOVR_EXCL_STOP
 
     return memcpy(ptr, mem, n);
 }
 
+char *ta_xasprintf(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    char *str = ta_xvasprintf(format, ap);
+    va_end(ap);
+    return str;
+}
+
+char *ta_xvasprintf(const char *format, va_list ap)
+{
+    char *str;
+    int len = vasprintf(&str, format, ap);
+
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(len < 0))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    return str;
+}
+
 void *ta_alloc(void *tactx, size_t size)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!h))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ta_header_init(h, size, tactx);
 }
 
 void *ta_zalloc(void *tactx, size_t size)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = (struct ta_header *)calloc(1, TA_HDR_SIZE + size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!h))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ta_header_init(h, size, tactx);
 }
@@ -335,8 +447,10 @@ void *ta_realloc(void *restrict tactx, void *restrict ptr, size_t size)
     if (!ptr)
         return ta_alloc(tactx, size);
 
+    // GCOVR_EXCL_START
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = ta_header_from_ptr(ptr);
     ptr = ta_header_realloc(h, size);
@@ -345,24 +459,30 @@ void *ta_realloc(void *restrict tactx, void *restrict ptr, size_t size)
 
 void *ta_alloc_array(void *restrict tactx, size_t size, size_t count)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!size || count > TA_MAX_SIZE / size))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ta_alloc(tactx, size * count);
 }
 
 void *ta_zalloc_array(void *restrict tactx, size_t size, size_t count)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!size || count > TA_MAX_SIZE / size))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ta_zalloc(tactx, size * count);
 }
 
 void *ta_realloc_array(void *restrict tactx, void *restrict ptr, size_t size, size_t count)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!size || count > TA_MAX_SIZE / size))
         abort();
+    // GCOVR_EXCL_STOP
 
     return ta_realloc(tactx, ptr, size * count);
 }
@@ -372,12 +492,17 @@ void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size)
     if (!ptr)
         return ta_alloc(tactx, size);
 
+    // GCOVR_EXCL_START
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = (struct ta_header *)realloc(ptr, TA_HDR_SIZE + size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!h))
         abort();
+    // GCOVR_EXCL_STOP
 
     if (__ta_likely(size))
         memmove(TA_PTR_FROM_HDR(h), h, size);
@@ -387,15 +512,20 @@ void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size)
 
 void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!ptr))
         abort();
 
     if (__ta_unlikely(size > TA_MAX_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + size);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!h))
         abort();
+    // GCOVR_EXCL_STOP
 
     if (__ta_likely(size))
         memcpy(TA_PTR_FROM_HDR(h), ptr, size);
@@ -405,25 +535,35 @@ void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size)
 
 char *ta_strdup(void *restrict tactx, const char *restrict str)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str))
         abort();
+    // GCOVR_EXCL_STOP
 
-    size_t n = strlen(str);
-    if (__ta_unlikely(n >= TA_MAX_SIZE))
+    size_t n = strlen(str) + 1;
+
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(n > TA_MAX_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
-    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + n + 1);
+    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + n);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!h))
         abort();
+    // GCOVR_EXCL_STOP
 
-    memcpy(TA_PTR_FROM_HDR(h), str, n + 1);
-    return (char *)ta_header_init(h, n + 1, tactx);
+    memcpy(TA_PTR_FROM_HDR(h), str, n);
+    return (char *)ta_header_init(h, n, tactx);
 }
 
 char *ta_strdup_append(char *restrict str, const char *restrict append)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str || !append))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = ta_header_from_ptr(str);
     return (char *)ta_header_append(h, strnlen(str, h->size), append, strlen(append));
@@ -431,8 +571,10 @@ char *ta_strdup_append(char *restrict str, const char *restrict append)
 
 char *ta_strdup_append_buffer(char *restrict str, const char *restrict append)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str || !append))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = ta_header_from_ptr(str);
     return (char *)ta_header_append(h, h->size ? h->size - 1 : 0, append, strlen(append));
@@ -440,16 +582,24 @@ char *ta_strdup_append_buffer(char *restrict str, const char *restrict append)
 
 char *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str))
         abort();
+    // GCOVR_EXCL_STOP
 
     n = strnlen(str, n);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(n >= TA_MAX_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + n + 1);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!h))
         abort();
+    // GCOVR_EXCL_STOP
 
     char *ptr = (char *)TA_PTR_FROM_HDR(h);
     if (__ta_likely(n))
@@ -461,8 +611,10 @@ char *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
 
 char *ta_strndup_append(char *restrict str, const char *restrict append, size_t n)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str || !append))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = ta_header_from_ptr(str);
     return (char *)ta_header_append(h, strnlen(str, h->size), append, strnlen(append, n));
@@ -470,8 +622,10 @@ char *ta_strndup_append(char *restrict str, const char *restrict append, size_t 
 
 char *ta_strndup_append_buffer(char *restrict str, const char *restrict append, size_t n)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str || !append))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = ta_header_from_ptr(str);
     return (char *)ta_header_append(h, h->size ? h->size - 1 : 0, append, strnlen(append, n));
@@ -506,33 +660,44 @@ char *ta_asprintf_append_buffer(char *restrict str, const char *restrict format,
 
 char *ta_vasprintf(void *restrict tactx, const char *restrict format, va_list ap)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!format))
         abort();
+    // GCOVR_EXCL_STOP
 
     va_list copy;
     va_copy(copy, ap);
-    char c;
-    int len = vsnprintf(&c, 1, format, copy);
+    int len = vsnprintf(NULL, 0, format, copy);
     va_end(copy);
 
+    // GCOVR_EXCL_START
     if (__ta_unlikely(len < 0 || (size_t)len >= TA_MAX_SIZE))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + (size_t)len + 1);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!h))
         abort();
+    // GCOVR_EXCL_STOP
 
     char *ptr = (char *)TA_PTR_FROM_HDR(h);
+
+    // GCOVR_EXCL_START
     if (__ta_unlikely(vsnprintf(ptr, (size_t)len + 1, format, ap) != len))
         abort();
+    // GCOVR_EXCL_STOP
 
     return (char *)ta_header_init(h, (size_t)len + 1, tactx);
 }
 
 char *ta_vasprintf_append(char *restrict str, const char *restrict format, va_list ap)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str || !format))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = ta_header_from_ptr(str);
     return ta_header_printf(h, strnlen(str, h->size), format, ap);
@@ -540,8 +705,10 @@ char *ta_vasprintf_append(char *restrict str, const char *restrict format, va_li
 
 char *ta_vasprintf_append_buffer(char *restrict str, const char *restrict format, va_list ap)
 {
+    // GCOVR_EXCL_START
     if (__ta_unlikely(!str || !format))
         abort();
+    // GCOVR_EXCL_STOP
 
     struct ta_header *h = ta_header_from_ptr(str);
     return ta_header_printf(h, h->size ? h->size - 1 : 0, format, ap);
@@ -559,7 +726,7 @@ void ta_free_children(void *ptr)
 {
     struct ta_header *h = ta_header_from_ptr(ptr);
     while (h->list)
-        ta_header_free(h->list);
+        ta_header_free(h->list); // NOLINT(clang-analyzer-unix.Malloc)
 }
 
 void ta_move_children(void *restrict src, void *restrict dst)
@@ -571,8 +738,9 @@ void ta_move_children(void *restrict src, void *restrict dst)
         return;
 
     if (!h_dst) {
-        while (h_src->list)
+        do {
             ta_header_set_parent(h_src->list, NULL);
+        } while (h_src->list);
         return;
     }
 

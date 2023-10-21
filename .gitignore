@@ -4,4 +4,3 @@
 .vscode-ctags
 /build*/
 *.iml
-CMakeUserPresets.json
