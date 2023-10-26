@@ -285,7 +285,6 @@ void *ta_xzalloc(size_t size)
 #ifndef _WIN32
 void *ta_xmemalign(size_t alignment, size_t n)
 {
-#if defined(HAVE_POSIX_MEMALIGN)
     void *ptr = NULL;
     int rc = posix_memalign(&ptr, alignment, n);
 
@@ -293,16 +292,6 @@ void *ta_xmemalign(size_t alignment, size_t n)
     if (__ta_unlikely(rc != 0))
         abort();
     // GCOVR_EXCL_STOP
-#elif defined(HAVE_ALIGNED_ALLOC)
-    void *ptr = aligned_alloc(alignment, n);
-
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!ptr))
-        abort();
-    // GCOVR_EXCL_STOP
-#else
-#   error "memalign not implemented"
-#endif
 
     return ptr;
 }
@@ -333,14 +322,6 @@ char *ta_xstrndup(const char *str, size_t n)
         abort();
     // GCOVR_EXCL_STOP
 
-#if defined(HAVE_STRNDUP)
-    char *ptr = strndup(str, n);
-
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!ptr))
-        abort();
-    // GCOVR_EXCL_STOP
-#else
     n = strnlen(str, n);
     char *ptr = (char *)malloc(n + 1);
 
@@ -353,8 +334,6 @@ char *ta_xstrndup(const char *str, size_t n)
         memcpy(ptr, str, n);
 
     ptr[n] = '\0';
-#endif
-
     return ptr;
 }
 

@@ -79,32 +79,6 @@ if cc.get_id() == 'gcc' and get_option('analyzer')
     endif
 endif
 
-features = {
-    'HAVE_STRNDUP':
-        cc.has_function('strndup',
-            args: '-D_GNU_SOURCE',
-            prefix: '#include <string.h>',
-        ),
-
-    'HAVE_POSIX_MEMALIGN':
-        cc.has_function('posix_memalign',
-            args: '-D_GNU_SOURCE',
-            prefix: '#include <stdlib.h>',
-        ),
-
-    'HAVE_ALIGNED_ALLOC':
-        cc.has_function('aligned_alloc',
-            args: '-D_GNU_SOURCE',
-            prefix: '#include <stdlib.h>',
-        ),
-}
-
-foreach feature, found: features
-    if found
-        cflags += '-D' + feature
-    endif
-endforeach
-
 add_project_arguments(
     cflags,
     cc.get_supported_arguments(cflags_check),
@@ -161,5 +135,3 @@ if astyle.found()
         console: true,
     )
 endif
-
-summary(features, bool_yn: true)
