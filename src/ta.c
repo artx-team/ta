@@ -13,18 +13,24 @@
 #   endif
 #endif
 
+#ifndef TA_MAGIC
+#   if defined(__OPTIMIZE__) || defined(NDEBUG)
+#       define TA_MAGIC 0
+#   else
+#       define TA_MAGIC 0x8FBEA918UL
+#   endif
+#endif
+
 struct ta_header {
+#if TA_MAGIC
     uintptr_t magic;
+#endif
     struct ta_header *list;
     struct ta_header *prev;
     struct ta_header *next;
     size_t size;
     ta_destructor destructor;
 };
-
-#ifndef TA_MAGIC
-#define TA_MAGIC 0x8FBEA918UL
-#endif
 
 #define TA_HDR_SIZE sizeof(struct ta_header)
 #define TA_MAX_SIZE ((size_t)PTRDIFF_MAX - TA_HDR_SIZE)
@@ -42,10 +48,12 @@ struct ta_header *ta_header_from_ptr(const void *ptr)
 
     struct ta_header *h = TA_HDR_FROM_PTR(ptr);
 
+#if TA_MAGIC
     // GCOVR_EXCL_START
     if (__ta_unlikely(h->magic != TA_MAGIC))
         abort();
     // GCOVR_EXCL_STOP
+#endif
 
     return h;
 }
@@ -54,7 +62,9 @@ static __ta_inline __ta_nodiscard __ta_returns_nonnull
 void *ta_header_init(struct ta_header *restrict h, size_t size, void *restrict tactx)
 {
     *h = (struct ta_header) {
+#if TA_MAGIC
         .magic  = TA_MAGIC,
+#endif
         .size   = size,
     };
 
@@ -91,7 +101,9 @@ static void ta_header_free(struct ta_header *h)
             h->next->prev = h->prev;
     }
 
+#if TA_MAGIC
     h->magic = 0;
+#endif
     free(h);
 }
 
@@ -761,7 +773,7 @@ bool ta_lookup_parent(struct ta_header *h, struct ta_header *h_parent)
         if (h->prev == h_parent)
             return true;
         h = h->prev;
-    } while(true);
+    } while (true);
 }
 
 bool ta_has_parent(void *ptr, void *tactx)
