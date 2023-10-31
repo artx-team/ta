@@ -193,10 +193,12 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    container:
+      image: debian:sid
     steps:
     - uses: actions/checkout@main
-    - run: sudo apt-get update
-    - run: sudo apt-get install -yqq --no-install-recommends meson gcovr
+    - run: apt-get update
+    - run: apt-get install -yqq --no-install-recommends build-essential meson gcovr
     - run: meson setup build -Dbuildtype=debug -Dtests=true -Db_coverage=true
     - run: meson compile -Cbuild -v
     - run: meson test -Cbuild -v
