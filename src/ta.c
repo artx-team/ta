@@ -1,18 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdalign.h>
 #include <string.h>
 
 #include "ta.h"
-
-#ifndef __ta_aligned
-#   if __ta_has_attribute(__aligned__)
-#       define __ta_aligned(x) __attribute__((__aligned__(x)))
-#   else
-#       define __ta_aligned(x)
-#   endif
-#endif
 
 #ifndef __ta_inline
 #   if __ta_has_attribute(__always_inline__)
@@ -29,7 +20,7 @@ struct ta_header {
     struct ta_header *next;
     size_t size;
     ta_destructor destructor;
-} __ta_aligned(alignof(max_align_t));
+};
 
 #ifndef TA_MAGIC
 #define TA_MAGIC 0x8FBEA918UL
