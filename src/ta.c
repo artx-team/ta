@@ -32,7 +32,7 @@ struct ta_header {
 #define TA_HDR_FROM_PTR(ptr) ((struct ta_header *)((uint8_t *)(ptr) - TA_HDR_SIZE))
 #define TA_PTR_FROM_HDR(hdr) ((void *)((uint8_t *)(hdr) + TA_HDR_SIZE))
 
-static __ta_inline __ta_nodiscard __ta_nonnull
+static __ta_inline __ta_nodiscard __ta_returns_nonnull
 struct ta_header *ta_header_from_ptr(const void *ptr)
 {
     // GCOVR_EXCL_START
@@ -50,7 +50,7 @@ struct ta_header *ta_header_from_ptr(const void *ptr)
     return h;
 }
 
-static __ta_inline __ta_nodiscard __ta_nonnull
+static __ta_inline __ta_nodiscard __ta_returns_nonnull
 void *ta_header_init(struct ta_header *restrict h, size_t size, void *restrict tactx)
 {
     *h = (struct ta_header) {
@@ -95,7 +95,7 @@ static void ta_header_free(struct ta_header *h)
     free(h);
 }
 
-static __ta_inline __ta_nodiscard __ta_nonnull
+static __ta_inline __ta_nodiscard __ta_returns_nonnull
 void *ta_header_realloc(struct ta_header *h, size_t size)
 {
     struct ta_header *h_old = h;
@@ -126,7 +126,7 @@ void *ta_header_realloc(struct ta_header *h, size_t size)
     return TA_PTR_FROM_HDR(h);
 }
 
-static __ta_inline __ta_nodiscard __ta_nonnull
+static __ta_inline __ta_nodiscard __ta_returns_nonnull
 char *ta_header_append(struct ta_header *restrict h, size_t at,
                        const char *restrict append, size_t len)
 {
@@ -149,7 +149,7 @@ char *ta_header_append(struct ta_header *restrict h, size_t at,
     return str;
 }
 
-static __ta_nodiscard __ta_nonnull __ta_printf(3, 0)
+static __ta_nodiscard __ta_returns_nonnull __ta_printf(3, 0)
 char *ta_header_printf(struct ta_header *restrict h, size_t at,
                        const char *restrict format, va_list ap)
 {
@@ -175,8 +175,10 @@ char *ta_header_printf(struct ta_header *restrict h, size_t at,
                 ? (char *)ta_header_realloc(h, at + (size_t)len + 1)
                 : (char *)TA_PTR_FROM_HDR(h);
 
+    int res = vsnprintf(str + at, (size_t)len + 1, format, ap);
+
     // GCOVR_EXCL_START
-    if (__ta_unlikely(vsnprintf(str + at, (size_t)len + 1, format, ap) != len))
+    if (__ta_unlikely(res != len))
         abort();
     // GCOVR_EXCL_STOP
 
@@ -630,11 +632,6 @@ char *ta_asprintf_append_buffer(char *restrict str, const char *restrict format,
 
 char *ta_vasprintf(void *restrict tactx, const char *restrict format, va_list ap)
 {
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!format))
-        abort();
-    // GCOVR_EXCL_STOP
-
     va_list copy;
     va_copy(copy, ap);
     int len = vsnprintf(NULL, 0, format, copy);
@@ -652,10 +649,11 @@ char *ta_vasprintf(void *restrict tactx, const char *restrict format, va_list ap
         abort();
     // GCOVR_EXCL_STOP
 
-    char *ptr = (char *)TA_PTR_FROM_HDR(h);
+    char *str = (char *)TA_PTR_FROM_HDR(h);
+    int res = vsnprintf(str, (size_t)len + 1, format, ap);
 
     // GCOVR_EXCL_START
-    if (__ta_unlikely(vsnprintf(ptr, (size_t)len + 1, format, ap) != len))
+    if (__ta_unlikely(res != len))
         abort();
     // GCOVR_EXCL_STOP
 
@@ -664,22 +662,12 @@ char *ta_vasprintf(void *restrict tactx, const char *restrict format, va_list ap
 
 char *ta_vasprintf_append(char *restrict str, const char *restrict format, va_list ap)
 {
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!str || !format))
-        abort();
-    // GCOVR_EXCL_STOP
-
     struct ta_header *h = ta_header_from_ptr(str);
     return ta_header_printf(h, strnlen(str, h->size), format, ap);
 }
 
 char *ta_vasprintf_append_buffer(char *restrict str, const char *restrict format, va_list ap)
 {
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!str || !format))
-        abort();
-    // GCOVR_EXCL_STOP
-
     struct ta_header *h = ta_header_from_ptr(str);
     return ta_header_printf(h, h->size ? h->size - 1 : 0, format, ap);
 }
@@ -765,7 +753,7 @@ void *ta_get_parent(void *ptr)
 static __ta_inline __ta_nodiscard
 bool ta_lookup_parent(struct ta_header *h, struct ta_header *h_parent)
 {
-    for (;;) {
+    do {
         if (!h->prev)
             return false;
         while (h->prev->list != h)
@@ -773,7 +761,7 @@ bool ta_lookup_parent(struct ta_header *h, struct ta_header *h_parent)
         if (h->prev == h_parent)
             return true;
         h = h->prev;
-    }
+    } while(true);
 }
 
 bool ta_has_parent(void *ptr, void *tactx)

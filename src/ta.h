@@ -65,19 +65,27 @@ extern "C" {
 #   endif
 #endif
 
-#ifndef __ta_nonnull
+#ifndef __ta_returns_nonnull
 #   if __ta_has_attribute(__returns_nonnull__)
-#       define __ta_nonnull __attribute__((__returns_nonnull__))
+#       define __ta_returns_nonnull __attribute__((__returns_nonnull__))
 #   else
-#       define __ta_nonnull
+#       define __ta_returns_nonnull
+#   endif
+#endif
+
+#ifndef __ta_nonnull
+#   if __ta_has_attribute(__nonnull__)
+#       define __ta_nonnull(...) __attribute__((__nonnull__(__VA_ARGS__)))
+#   else
+#       define __ta_nonnull(...)
 #   endif
 #endif
 
 #ifndef __ta_printf
 #   if __ta_has_attribute(__format__)
-#       define __ta_printf(x, y) __attribute__((__format__(__printf__, x, y)))
+#       define __ta_printf(x, y) __ta_nonnull(x) __attribute__((__format__(__printf__, x, y)))
 #   else
-#       define __ta_printf(x, y)
+#       define __ta_printf(x, y) __ta_nonnull(x)
 #   endif
 #endif
 
@@ -114,54 +122,54 @@ extern "C" {
 #endif
 
 // Wrapper around standard `malloc()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_alloc_size(1) __ta_dealloc_free
 void *ta_xmalloc(size_t size);
 
 // Wrapper around standard `calloc()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_alloc_size(1, 2) __ta_dealloc_free
 void *ta_xcalloc(size_t n, size_t size);
 
 // Wrapper around standard `realloc()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_alloc_size(2) __ta_dealloc_free
 void *ta_xrealloc(void *ptr, size_t size);
 
 // Wrapper around standard `calloc()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_alloc_size(1) __ta_dealloc_free
 void *ta_xzalloc(size_t size);
 
 #ifndef _WIN32
 // Wrapper around standard `posix_memalign()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_alloc_align(1) __ta_alloc_size(2) __ta_dealloc_free
 void *ta_xmemalign(size_t alignment, size_t n);
 #endif
 
 // Wrapper around standard `strdup()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_dealloc_free
 char *ta_xstrdup(const char *str);
 
 // Wrapper around standard `strndup()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_dealloc_free
 char *ta_xstrndup(const char *str, size_t n);
 
 // Wrapper around `malloc()` and `memcpy()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_dealloc_free
 void *ta_xmemdup(const void *mem, size_t n);
 
 // Wrapper around `asprintf()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_dealloc_free __ta_printf(1, 2)
 char *ta_xasprintf(const char *format, ...);
 
 // Wrapper around `vasprintf()` which aborts on errors.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_dealloc_free __ta_printf(1, 0)
 char *ta_xvasprintf(const char *format, va_list ap);
 
@@ -175,83 +183,83 @@ char *ta_xvasprintf(const char *format, va_list ap);
 typedef void (*ta_destructor)(void *);
 
 // Create a new TA chunk.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_alloc(void *tactx, size_t size);
 
 // Create a new 0-initizialized TA chunk.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_zalloc(void *tactx, size_t size);
 
 // Change the size of a TA chunk.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_realloc(void *restrict tactx, void *restrict ptr, size_t size);
 
 // Create a new TA array.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_alloc_array(void *restrict tactx, size_t size, size_t count);
 
 // Create a new 0-initizialized TA array.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_zalloc_array(void *restrict tactx, size_t size, size_t count);
 
 // Change the size of a TA array.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_realloc_array(void *restrict tactx, void *restrict ptr, size_t size, size_t count);
 
 // Create a new TA chunk from a malloc'ed ptr.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size);
 
 // Create a new TA chunk from a memory block.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size);
 
 // Create a new TA chunk from a string. The function is similar to `strdup()`.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 char *ta_strdup(void *restrict tactx, const char *restrict str);
 
 // Append a string to a given TA string.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 char *ta_strdup_append(char *restrict str, const char *restrict append);
 
 // Append a string to a given TA buffer.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 char *ta_strdup_append_buffer(char *restrict str, const char *restrict append);
 
 // Create a new TA chunk from a length-limited string. The function is similar to `strndup()`.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 char *ta_strndup(void *restrict tactx, const char *restrict str, size_t n);
 
 // Append a length-limited string to a given TA string.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 char *ta_strndup_append(char *restrict str, const char *restrict append, size_t n);
 
 // Append a length-limited string to a given TA buffer.
-__ta_public __ta_nodiscard __ta_nonnull
+__ta_public __ta_nodiscard __ta_returns_nonnull
 char *ta_strndup_append_buffer(char *restrict str, const char *restrict append, size_t n);
 
 // Create a new TA chunk from a formatted string. The function is similar to `asprintf()`.
-__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 3)
+__ta_public __ta_nodiscard __ta_returns_nonnull __ta_printf(2, 3)
 char *ta_asprintf(void *restrict tactx, const char *restrict format, ...);
 
 // Append a formatted string to a given TA string.
-__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 3)
+__ta_public __ta_nodiscard __ta_returns_nonnull __ta_printf(2, 3)
 char *ta_asprintf_append(char *restrict str, const char *restrict format, ...);
 
 // Append a formatted string to a given TA buffer.
-__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 3)
+__ta_public __ta_nodiscard __ta_returns_nonnull __ta_printf(2, 3)
 char *ta_asprintf_append_buffer(char *restrict str, const char *restrict format, ...);
 
 // Create a new TA chunk from a formatted string. The function is similar to `vasprintf()`.
-__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 0)
+__ta_public __ta_nodiscard __ta_returns_nonnull __ta_printf(2, 0)
 char *ta_vasprintf(void *restrict tactx, const char *restrict format, va_list ap);
 
 // Append a formatted string to a given TA string.
-__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 0)
+__ta_public __ta_nodiscard __ta_returns_nonnull __ta_printf(2, 0)
 char *ta_vasprintf_append(char *restrict str, const char *restrict format, va_list ap);
 
 // Append a formatted string to a given TA buffer.
-__ta_public __ta_nodiscard __ta_nonnull __ta_printf(2, 0)
+__ta_public __ta_nodiscard __ta_returns_nonnull __ta_printf(2, 0)
 char *ta_vasprintf_append_buffer(char *restrict str, const char *restrict format, va_list ap);
 
 // Free a TA chunk.
@@ -275,7 +283,7 @@ __ta_public __ta_nodiscard
 ta_destructor ta_get_destructor(void *ptr);
 
 // Set the parent to a TA chunk.
-__ta_public __ta_nonnull
+__ta_public __ta_returns_nonnull
 void *ta_set_parent(void *restrict ptr, void *restrict tactx);
 
 // Get the parent of a TA chunk.

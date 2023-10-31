@@ -200,6 +200,8 @@ TEST(test_ta_set_parent)
         assert_not_null(ptr);
         assert_equal(ta_get_parent(ptr), tactx);
         assert_equal(ta_get_size(ptr), i);
+        assert_equal(ta_set_parent(ptr, tactx), ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
     }
 
     ta_set_parent(arr[8], arr[9]);
