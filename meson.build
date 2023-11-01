@@ -17,7 +17,7 @@ project_version_minor = project_version_split[1]
 project_version_patch = project_version_split[2]
 
 project_source_root = meson.current_source_dir()
-project_build_root = meson.current_build_dir()
+source_dir = project_source_root / 'src'
 
 cc = meson.get_compiler('c')
 
@@ -87,19 +87,22 @@ add_project_arguments(
 
 libta_version = project_version_major + '.' + project_version_minor + '.0'
 
-libta = library('ta', 'src/ta.c',
+sources = files(source_dir / 'ta.c')
+headers = files(source_dir / 'ta.h')
+
+libta = library('ta', sources,
     version: libta_version,
     gnu_symbol_visibility: 'hidden',
     install: true
 )
 
-install_headers('src/ta.h')
+install_headers(headers)
 
 pkg = import('pkgconfig')
 pkg.generate(libta, version: libta_version, description: 'Tree Allocator')
 
 if get_option('tests')
-    ta_test = executable('ta_test', 'src/ta_test.c',
+    ta_test = executable('ta_test', files(source_dir / 'ta_test.c'),
         link_with: libta,
         install: false,
     )
@@ -127,10 +130,10 @@ if astyle.found()
         output: 'astyle',
         command: [
             astyle,
-            '--options=@0@/.astylerc'.format(project_source_root),
+            '--options=@0@'.format(project_source_root) / '.astylerc',
             '-Q', '-n', '-r',
-            project_source_root / 'src/*.c',
-            project_source_root / 'src/*.h',
+            source_dir / '*.c',
+            source_dir / '*.h',
         ],
         console: true,
     )
