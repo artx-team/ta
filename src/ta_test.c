@@ -639,10 +639,10 @@ TEST(test_ta_realloc)
     assert_equal(ta_get_parent(ptr), tactx);
     assert_equal(ta_get_size(ptr), 10);
 
-    ptr = ta_realloc(tactx, ptr, 5);
+    ptr = ta_realloc(tactx, ptr, 5000);
     assert_not_null(ptr);
     assert_equal(ta_get_parent(ptr), tactx);
-    assert_equal(ta_get_size(ptr), 5);
+    assert_equal(ta_get_size(ptr), 5000);
 
     ptr = ta_realloc(NULL, ptr, 5);
     assert_not_null(ptr);
@@ -900,6 +900,15 @@ TEST(test_ta_assign)
     }
     for (size_t i = 0; i < 10; ++i) {
         void *ptr = ta_assign(tactx, NULL, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
+        ta_free(ptr);
+    }
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = malloc(i * 2);
+        assert_not_null(ptr);
+        ptr = ta_assign(tactx, ptr, i);
         assert_not_null(ptr);
         assert_equal(ta_get_parent(ptr), tactx);
         assert_equal(ta_get_size(ptr), i);
