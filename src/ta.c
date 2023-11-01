@@ -555,7 +555,7 @@ char *ta_strdup(void *restrict tactx, const char *restrict str)
 char *ta_strdup_append(char *restrict str, const char *restrict append)
 {
     // GCOVR_EXCL_START
-    if (__ta_unlikely(!str || !append))
+    if (__ta_unlikely(!append))
         abort();
     // GCOVR_EXCL_STOP
 
@@ -566,7 +566,7 @@ char *ta_strdup_append(char *restrict str, const char *restrict append)
 char *ta_strdup_append_buffer(char *restrict str, const char *restrict append)
 {
     // GCOVR_EXCL_START
-    if (__ta_unlikely(!str || !append))
+    if (__ta_unlikely(!append))
         abort();
     // GCOVR_EXCL_STOP
 
@@ -606,7 +606,7 @@ char *ta_strndup(void *restrict tactx, const char *restrict str, size_t n)
 char *ta_strndup_append(char *restrict str, const char *restrict append, size_t n)
 {
     // GCOVR_EXCL_START
-    if (__ta_unlikely(!str || !append))
+    if (__ta_unlikely(!append))
         abort();
     // GCOVR_EXCL_STOP
 
@@ -617,7 +617,7 @@ char *ta_strndup_append(char *restrict str, const char *restrict append, size_t 
 char *ta_strndup_append_buffer(char *restrict str, const char *restrict append, size_t n)
 {
     // GCOVR_EXCL_START
-    if (__ta_unlikely(!str || !append))
+    if (__ta_unlikely(!append))
         abort();
     // GCOVR_EXCL_STOP
 
