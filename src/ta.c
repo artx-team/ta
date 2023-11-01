@@ -455,34 +455,30 @@ void *ta_realloc(void *restrict tactx, void *restrict ptr, size_t size)
     return ta_set_parent(ptr, tactx);
 }
 
-void *ta_alloc_array(void *restrict tactx, size_t size, size_t count)
+static __ta_inline __ta_nodiscard
+size_t ta_get_array_size(size_t size, size_t count)
 {
     // GCOVR_EXCL_START
     if (__ta_unlikely(!size || count > TA_MAX_SIZE / size))
         abort();
     // GCOVR_EXCL_STOP
 
-    return ta_alloc(tactx, size * count);
+    return size * count;
+}
+
+void *ta_alloc_array(void *restrict tactx, size_t size, size_t count)
+{
+    return ta_alloc(tactx, ta_get_array_size(size, count));
 }
 
 void *ta_zalloc_array(void *restrict tactx, size_t size, size_t count)
 {
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!size || count > TA_MAX_SIZE / size))
-        abort();
-    // GCOVR_EXCL_STOP
-
-    return ta_zalloc(tactx, size * count);
+    return ta_zalloc(tactx, ta_get_array_size(size, count));
 }
 
 void *ta_realloc_array(void *restrict tactx, void *restrict ptr, size_t size, size_t count)
 {
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!size || count > TA_MAX_SIZE / size))
-        abort();
-    // GCOVR_EXCL_STOP
-
-    return ta_realloc(tactx, ptr, size * count);
+    return ta_realloc(tactx, ptr, ta_get_array_size(size, count));
 }
 
 void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size)
