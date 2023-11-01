@@ -288,10 +288,24 @@ void *ta_xzalloc(size_t size)
 }
 
 #ifndef _WIN32
-void *ta_xmemalign(size_t alignment, size_t n)
+void *ta_xmemalign(size_t alignment, size_t size)
 {
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(!alignment))
+        abort();
+
+    if (__ta_unlikely(alignment % sizeof(void *)))
+        abort();
+
+    if (__ta_unlikely(alignment & (alignment - 1)))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    if (__ta_unlikely(!size))
+        size = 1;
+
     void *ptr = NULL;
-    int rc = posix_memalign(&ptr, alignment, n);
+    int rc = posix_memalign(&ptr, alignment, size);
 
     // GCOVR_EXCL_START
     if (__ta_unlikely(rc != 0))

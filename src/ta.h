@@ -145,7 +145,7 @@ void *ta_xzalloc(size_t size);
 // Wrapper around standard `posix_memalign()` which aborts on errors.
 __ta_public __ta_nodiscard __ta_returns_nonnull
 __ta_malloc __ta_alloc_align(1) __ta_alloc_size(2) __ta_dealloc_free
-void *ta_xmemalign(size_t alignment, size_t n);
+void *ta_xmemalign(size_t alignment, size_t size);
 #endif
 
 // Wrapper around standard `strdup()` which aborts on errors.
