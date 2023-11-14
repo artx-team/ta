@@ -710,6 +710,80 @@ TEST(test_ta_realloc)
     ta_free(tactx);
 }
 
+TEST(test_ta_memdup)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+
+    const char str[] = "hello, world";
+    {
+        char *ptr = (char *)ta_memdup(tactx, str, sizeof(str));
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(str));
+        assert_str_equal(ptr, str);
+        ta_free(ptr);
+    }
+    {
+        char *ptr = (char *)ta_memdup(NULL, str, 0);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), 0);
+        ta_free(ptr);
+    }
+    ta_free(tactx);
+}
+
+TEST(test_ta_assign)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    {
+        void *ptr = ta_assign(tactx, NULL, sizeof(int));
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int));
+        ta_free(ptr);
+    }
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = ta_assign(tactx, NULL, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
+        ta_free(ptr);
+    }
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = malloc(i * 2);
+        assert_not_null(ptr);
+        ptr = ta_assign(tactx, ptr, i * 2);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i * 2);
+        ta_free(ptr);
+    }
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = malloc(i * 2);
+        assert_not_null(ptr);
+        ptr = ta_assign(tactx, ptr, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
+        ta_free(ptr);
+    }
+    {
+        void *ptr = malloc(sizeof(int));
+        assert_not_null(ptr);
+        ptr = ta_assign(NULL, ptr, sizeof(int));
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), sizeof(int));
+        ta_free(ptr);
+    }
+    ta_free(tactx);
+}
+
 TEST(test_ta_alloc_array)
 {
     void *tactx = ta_alloc(NULL, 0);
@@ -863,6 +937,80 @@ TEST(test_ta_realloc_array)
     ta_free(tactx);
 }
 
+TEST(test_ta_memdup_array)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+
+    const char str[] = "hello, world";
+    {
+        char *ptr = (char *)ta_memdup_array(tactx, str, 1, sizeof(str));
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(str));
+        assert_str_equal(ptr, str);
+        ta_free(ptr);
+    }
+    {
+        char *ptr = (char *)ta_memdup_array(NULL, str, 1, 0);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), 0);
+        ta_free(ptr);
+    }
+    ta_free(tactx);
+}
+
+TEST(test_ta_assign_array)
+{
+    void *tactx = ta_alloc(NULL, 0);
+    assert_not_null(tactx);
+    assert_null(ta_get_parent(tactx));
+    {
+        void *ptr = ta_assign_array(tactx, NULL, sizeof(int), 5);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), sizeof(int) * 5);
+        ta_free(ptr);
+    }
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = ta_assign_array(tactx, NULL, 5, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i * 5);
+        ta_free(ptr);
+    }
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = malloc(i * 2);
+        assert_not_null(ptr);
+        ptr = ta_assign_array(tactx, ptr, 2, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i * 2);
+        ta_free(ptr);
+    }
+    for (size_t i = 0; i < 10; ++i) {
+        void *ptr = malloc(i * 2);
+        assert_not_null(ptr);
+        ptr = ta_assign_array(tactx, ptr, 1, i);
+        assert_not_null(ptr);
+        assert_equal(ta_get_parent(ptr), tactx);
+        assert_equal(ta_get_size(ptr), i);
+        ta_free(ptr);
+    }
+    {
+        void *ptr = malloc(sizeof(int));
+        assert_not_null(ptr);
+        ptr = ta_assign_array(NULL, ptr, sizeof(int), 1);
+        assert_not_null(ptr);
+        assert_null(ta_get_parent(ptr));
+        assert_equal(ta_get_size(ptr), sizeof(int));
+        ta_free(ptr);
+    }
+    ta_free(tactx);
+}
+
 TEST(test_ta_free)
 {
     void *tactx = ta_alloc(NULL, 0);
@@ -883,71 +1031,6 @@ TEST(test_ta_free)
     ta_free(arr[9]);
     ta_free(arr[4]);
     ta_free(arr[5]);
-    ta_free(tactx);
-}
-
-TEST(test_ta_assign)
-{
-    void *tactx = ta_alloc(NULL, 0);
-    assert_not_null(tactx);
-    assert_null(ta_get_parent(tactx));
-    {
-        void *ptr = ta_assign(tactx, NULL, sizeof(int));
-        assert_not_null(ptr);
-        assert_equal(ta_get_parent(ptr), tactx);
-        assert_equal(ta_get_size(ptr), sizeof(int));
-        ta_free(ptr);
-    }
-    for (size_t i = 0; i < 10; ++i) {
-        void *ptr = ta_assign(tactx, NULL, i);
-        assert_not_null(ptr);
-        assert_equal(ta_get_parent(ptr), tactx);
-        assert_equal(ta_get_size(ptr), i);
-        ta_free(ptr);
-    }
-    for (size_t i = 0; i < 10; ++i) {
-        void *ptr = malloc(i * 2);
-        assert_not_null(ptr);
-        ptr = ta_assign(tactx, ptr, i);
-        assert_not_null(ptr);
-        assert_equal(ta_get_parent(ptr), tactx);
-        assert_equal(ta_get_size(ptr), i);
-        ta_free(ptr);
-    }
-    {
-        void *ptr = malloc(sizeof(int));
-        assert_not_null(ptr);
-        ptr = ta_assign(NULL, ptr, sizeof(int));
-        assert_not_null(ptr);
-        assert_null(ta_get_parent(ptr));
-        assert_equal(ta_get_size(ptr), sizeof(int));
-        ta_free(ptr);
-    }
-    ta_free(tactx);
-}
-
-TEST(test_ta_memdup)
-{
-    void *tactx = ta_alloc(NULL, 0);
-    assert_not_null(tactx);
-    assert_null(ta_get_parent(tactx));
-
-    const char str[] = "hello, world";
-    {
-        char *ptr = (char *)ta_memdup(tactx, str, sizeof(str));
-        assert_not_null(ptr);
-        assert_equal(ta_get_parent(ptr), tactx);
-        assert_equal(ta_get_size(ptr), sizeof(str));
-        assert_str_equal(ptr, str);
-        ta_free(ptr);
-    }
-    {
-        char *ptr = (char *)ta_memdup(NULL, str, 0);
-        assert_not_null(ptr);
-        assert_null(ta_get_parent(ptr));
-        assert_equal(ta_get_size(ptr), 0);
-        ta_free(ptr);
-    }
     ta_free(tactx);
 }
 
@@ -1404,12 +1487,14 @@ int main(void)
         { "ta_alloc", test_ta_alloc },
         { "ta_zalloc", test_ta_zalloc },
         { "ta_realloc", test_ta_realloc },
+        { "ta_memdup", test_ta_memdup },
+        { "ta_assign", test_ta_assign },
         { "ta_alloc_array", test_ta_alloc_array },
         { "ta_zalloc_array", test_ta_zalloc_array },
         { "ta_realloc_array", test_ta_realloc_array },
+        { "ta_memdup_array", test_ta_memdup_array },
+        { "ta_assign_array", test_ta_assign_array },
         { "ta_free", test_ta_free },
-        { "ta_assign", test_ta_assign },
-        { "ta_memdup", test_ta_memdup },
         { "ta_strdup", test_ta_strdup },
         { "ta_strdup_append", test_ta_strdup_append },
         { "ta_strdup_append_buffer", test_ta_strdup_append_buffer },

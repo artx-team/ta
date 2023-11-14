@@ -194,6 +194,14 @@ void *ta_zalloc(void *tactx, size_t size);
 __ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_realloc(void *restrict tactx, void *restrict ptr, size_t size);
 
+// Create a new TA chunk from a memory block.
+__ta_public __ta_nodiscard __ta_returns_nonnull
+void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size);
+
+// Create a new TA chunk from a malloc'ed ptr.
+__ta_public __ta_nodiscard __ta_returns_nonnull
+void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size);
+
 // Create a new TA array.
 __ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_alloc_array(void *restrict tactx, size_t size, size_t count);
@@ -206,13 +214,13 @@ void *ta_zalloc_array(void *restrict tactx, size_t size, size_t count);
 __ta_public __ta_nodiscard __ta_returns_nonnull
 void *ta_realloc_array(void *restrict tactx, void *restrict ptr, size_t size, size_t count);
 
-// Create a new TA chunk from a malloc'ed ptr.
+// Create a new TA array from a memory block.
 __ta_public __ta_nodiscard __ta_returns_nonnull
-void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size);
+void *ta_memdup_array(void *restrict tactx, const void *restrict ptr, size_t size, size_t count);
 
-// Create a new TA chunk from a memory block.
+// Create a new TA array from a malloc'ed ptr.
 __ta_public __ta_nodiscard __ta_returns_nonnull
-void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size);
+void *ta_assign_array(void *restrict tactx, void *restrict ptr, size_t size, size_t count);
 
 // Create a new TA chunk from a string. The function is similar to `strdup()`.
 __ta_public __ta_nodiscard __ta_returns_nonnull

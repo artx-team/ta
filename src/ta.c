@@ -455,6 +455,52 @@ void *ta_realloc(void *restrict tactx, void *restrict ptr, size_t size)
     return ta_set_parent(ptr, tactx);
 }
 
+void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size)
+{
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(!ptr))
+        abort();
+
+    if (__ta_unlikely(size > TA_MAX_SIZE))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + size);
+
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(!h))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    if (__ta_likely(size))
+        memcpy(TA_PTR_FROM_HDR(h), ptr, size);
+
+    return ta_header_init(h, size, tactx);
+}
+
+void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size)
+{
+    if (!ptr)
+        return ta_alloc(tactx, size);
+
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(size > TA_MAX_SIZE))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    struct ta_header *h = (struct ta_header *)realloc(ptr, TA_HDR_SIZE + size);
+
+    // GCOVR_EXCL_START
+    if (__ta_unlikely(!h))
+        abort();
+    // GCOVR_EXCL_STOP
+
+    if (__ta_likely(size))
+        memmove(TA_PTR_FROM_HDR(h), h, size);
+
+    return ta_header_init(h, size, tactx);
+}
+
 static __ta_inline __ta_nodiscard
 size_t ta_get_array_size(size_t size, size_t count)
 {
@@ -481,50 +527,14 @@ void *ta_realloc_array(void *restrict tactx, void *restrict ptr, size_t size, si
     return ta_realloc(tactx, ptr, ta_get_array_size(size, count));
 }
 
-void *ta_assign(void *restrict tactx, void *restrict ptr, size_t size)
+void *ta_memdup_array(void *restrict tactx, const void *restrict ptr, size_t size, size_t count)
 {
-    if (!ptr)
-        return ta_alloc(tactx, size);
-
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(size > TA_MAX_SIZE))
-        abort();
-    // GCOVR_EXCL_STOP
-
-    struct ta_header *h = (struct ta_header *)realloc(ptr, TA_HDR_SIZE + size);
-
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!h))
-        abort();
-    // GCOVR_EXCL_STOP
-
-    if (__ta_likely(size))
-        memmove(TA_PTR_FROM_HDR(h), h, size);
-
-    return ta_header_init(h, size, tactx);
+    return ta_memdup(tactx, ptr, ta_get_array_size(size, count));
 }
 
-void *ta_memdup(void *restrict tactx, const void *restrict ptr, size_t size)
+void *ta_assign_array(void *restrict tactx, void *restrict ptr, size_t size, size_t count)
 {
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!ptr))
-        abort();
-
-    if (__ta_unlikely(size > TA_MAX_SIZE))
-        abort();
-    // GCOVR_EXCL_STOP
-
-    struct ta_header *h = (struct ta_header *)malloc(TA_HDR_SIZE + size);
-
-    // GCOVR_EXCL_START
-    if (__ta_unlikely(!h))
-        abort();
-    // GCOVR_EXCL_STOP
-
-    if (__ta_likely(size))
-        memcpy(TA_PTR_FROM_HDR(h), ptr, size);
-
-    return ta_header_init(h, size, tactx);
+    return ta_assign(tactx, ptr, ta_get_array_size(size, count));
 }
 
 char *ta_strdup(void *restrict tactx, const char *restrict str)
