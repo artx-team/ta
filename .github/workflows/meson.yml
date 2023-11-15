@@ -180,7 +180,7 @@ jobs:
   muon:
     runs-on: ubuntu-latest
     container:
-      image: alpine:edge
+      image: debian:sid
     strategy:
       fail-fast: false
       matrix:
@@ -197,11 +197,11 @@ jobs:
       CC: ${{ matrix.cc }}
     steps:
     - uses: actions/checkout@main
-    - run: echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories
-    - run: apk --no-cache add build-base muon ${{ matrix.cc }} valgrind samurai
-    - run: muon setup -Dbuildtype=${{ matrix.buildtype }} -Dtests=true -Dvalgrind=true build
-    - run: samu -Cbuild -v
-    - run: cd build && muon test -vv
+    - run: apt-get update
+    - run: apt-get install -yqq --no-install-recommends build-essential muon-meson ninja-build valgrind ${{ matrix.cc }}
+    - run: muon-meson setup -Dbuildtype=${{ matrix.buildtype }} -Dtests=true -Dvalgrind=true build
+    - run: ninja -Cbuild -v
+    - run: cd build && muon-meson test -vv
 
   valgrind:
     runs-on: ubuntu-latest
